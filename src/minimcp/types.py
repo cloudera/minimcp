@@ -19,3 +19,11 @@ class NoMessage(Enum):
 
 # --- Message callback type ---
 Send = Callable[[Message], Awaitable[None]]
+
+
+# --- Additional JSON-RPC error codes ---
+"""
+Resource not found error (-32002) is defined in the MCP specification but not available as of MCP SDK version 1.24.0.
+https://modelcontextprotocol.io/specification/2025-06-18/server/resources#error-handling
+"""
+RESOURCE_NOT_FOUND = -32002  # Used when a resource is not found as per the MCP specification.
