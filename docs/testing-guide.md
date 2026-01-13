@@ -153,4 +153,4 @@ class TestMyFeature:
 
 ---
 
-_Last updated: January 13, 2026_
+Last updated: January 13, 2026
