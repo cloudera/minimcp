@@ -1,0 +1,684 @@
+{
+  "name": "MCP Server with HTTP transport - Benchmark with asynchronous tool calls",
+  "description": "The benchmark is run on MCP servers fastmcp, minimcp with loads medium_load, sequential_load, heavy_load, light_load.             8 results are available.",
+  "metadata": {
+    "timestamp": "2025-12-09 19:28:41",
+    "environment": "Python 3.11.9, Linux 6.8.0-87-generic",
+    "benchmark_file": "http_mcp_server_benchmark.py",
+    "duration_seconds": 2389.496047
+  },
+  "load_info": [
+    {
+      "name": "sequential_load",
+      "rounds": 40,
+      "iterations": 30,
+      "concurrency": 1
+    },
+    {
+      "name": "light_load",
+      "rounds": 40,
+      "iterations": 30,
+      "concurrency": 20
+    },
+    {
+      "name": "medium_load",
+      "rounds": 40,
+      "iterations": 15,
+      "concurrency": 100
+    },
+    {
+      "name": "heavy_load",
+      "rounds": 40,
+      "iterations": 15,
+      "concurrency": 300
+    }
+  ],
+  "metrics_info": {
+    "response_time": {
+      "unit": "seconds",
+      "description": "End-to-end latency of each request from client call to response. Sample is collected per request."
+    },
+    "throughput_rps": {
+      "unit": "requests per second",
+      "description": "Throughput of the server process, calculated as the number of requests per second. Sample is collected per round."
+    },
+    "cpu_time": {
+      "unit": "seconds",
+      "description": "Each sample is the CPU time (user + system) of the server process during the measurement interval. Samples are collected every 0.1 seconds. Uses process.cpu_times() internally."
+    },
+    "memory_usage": {
+      "unit": "KB",
+      "description": "Memory usage of the server process excluding the baseline memory footprint. Samples are collected every 0.1 seconds. Baseline is taken at the start of the benchmark.Uses process.memory_info().rss internally."
+    },
+    "max_memory_usage": {
+      "unit": "KB",
+      "description": "Max memory usage of the server process excluding the baseline memory footprint. Samples are collected per round. Baseline is taken at the start of the benchmark.Uses resource.getrusage(resource.RUSAGE_SELF).ru_maxrss internally."
+    }
+  },
+  "results": [
+    {
+      "server_name": "fastmcp",
+      "load_name": "sequential_load",
+      "start_timestamp": "2025-12-09 18:48:51",
+      "duration_seconds": 42.018266,
+      "metrics": {
+        "response_time": {
+          "min": 0.00621175899868831,
+          "max": 0.03132811999967089,
+          "mean": 0.006796760304170372,
+          "stddev": 0.0014680688114634892,
+          "median": 0.006467901499490836,
+          "p95": 0.007591464949200599,
+          "p99": 0.013758342240089405,
+          "iqr": 0.000439195249327895,
+          "outliers_low": 0,
+          "outliers_high": 76,
+          "unit": "seconds",
+          "sample_size": 1200
+        },
+        "throughput_rps": {
+          "min": 135.31369801665372,
+          "max": 148.6961253129535,
+          "mean": 144.60137557114535,
+          "stddev": 3.72109959142229,
+          "median": 146.1635471839091,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 3.6950545062288143,
+          "outliers_low": 5,
+          "outliers_high": 0,
+          "unit": "requests per second",
+          "sample_size": 40
+        },
+        "cpu_time": {
+          "min": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "stddev": 0.0,
+          "median": 0.0,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 0.0,
+          "outliers_low": 0,
+          "outliers_high": 0,
+          "unit": "seconds",
+          "sample_size": 120
+        },
+        "memory_usage": {
+          "min": 26124.0,
+          "max": 26896.0,
+          "mean": 26526.1,
+          "stddev": 188.99110289849602,
+          "median": 26564.0,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 260.0,
+          "outliers_low": 0,
+          "outliers_high": 0,
+          "unit": "KB",
+          "sample_size": 120
+        },
+        "max_memory_usage": {
+          "min": 21560.0,
+          "max": 22916.0,
+          "mean": 22245.4,
+          "stddev": 309.5028934043122,
+          "median": 22120.0,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 470.0,
+          "outliers_low": 0,
+          "outliers_high": 0,
+          "unit": "KB",
+          "sample_size": 40
+        }
+      }
+    },
+    {
+      "server_name": "fastmcp",
+      "load_name": "light_load",
+      "start_timestamp": "2025-12-09 18:49:33",
+      "duration_seconds": 114.630178,
+      "metrics": {
+        "response_time": {
+          "min": 0.03042679500140366,
+          "max": 0.1363157699997828,
+          "mean": 0.05910037448400158,
+          "stddev": 0.011574210356996004,
+          "median": 0.058406905999618175,
+          "p95": 0.07521850054945389,
+          "p99": 0.11027403951018641,
+          "iqr": 0.009402706500168279,
+          "outliers_low": 158,
+          "outliers_high": 973,
+          "unit": "seconds",
+          "sample_size": 24000
+        },
+        "throughput_rps": {
+          "min": 287.14472821681983,
+          "max": 296.30569452763945,
+          "mean": 292.69503706912354,
+          "stddev": 2.13123412033153,
+          "median": 292.6495357016345,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 2.950632536948092,
+          "outliers_low": 1,
+          "outliers_high": 0,
+          "unit": "requests per second",
+          "sample_size": 40
+        },
+        "cpu_time": {
+          "min": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "stddev": 0.0,
+          "median": 0.0,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 0.0,
+          "outliers_low": 0,
+          "outliers_high": 0,
+          "unit": "seconds",
+          "sample_size": 840
+        },
+        "memory_usage": {
+          "min": 26300.0,
+          "max": 26824.0,
+          "mean": 26483.9,
+          "stddev": 156.08649385442158,
+          "median": 26564.0,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 257.0,
+          "outliers_low": 0,
+          "outliers_high": 0,
+          "unit": "KB",
+          "sample_size": 840
+        },
+        "max_memory_usage": {
+          "min": 23712.0,
+          "max": 24888.0,
+          "mean": 24291.1,
+          "stddev": 287.9223363945072,
+          "median": 24302.0,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 442.0,
+          "outliers_low": 0,
+          "outliers_high": 0,
+          "unit": "KB",
+          "sample_size": 40
+        }
+      }
+    },
+    {
+      "server_name": "fastmcp",
+      "load_name": "medium_load",
+      "start_timestamp": "2025-12-09 18:51:28",
+      "duration_seconds": 213.161724,
+      "metrics": {
+        "response_time": {
+          "min": 0.050856820998888,
+          "max": 0.4949882910004817,
+          "mean": 0.24884015080739982,
+          "stddev": 0.05262380372731964,
+          "median": 0.2511257395008215,
+          "p95": 0.33750368549954146,
+          "p99": 0.424718786450012,
+          "iqr": 0.05338170599907244,
+          "outliers_low": 1621,
+          "outliers_high": 2543,
+          "unit": "seconds",
+          "sample_size": 60000
+        },
+        "throughput_rps": {
+          "min": 326.763762911077,
+          "max": 337.60615979277657,
+          "mean": 332.37635915148917,
+          "stddev": 2.511033923289725,
+          "median": 332.33951210102805,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 3.1297679625174055,
+          "outliers_low": 0,
+          "outliers_high": 0,
+          "unit": "requests per second",
+          "sample_size": 40
+        },
+        "cpu_time": {
+          "min": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "stddev": 0.0,
+          "median": 0.0,
+          "p95": 0.0,
+          "p99": 0.0,
+          "iqr": 0.0,
+          "outliers_low": 0,
+          "outliers_high": 0,
+          "unit": "seconds",
+          "sample_size": 1797
+        },
+        "memory_usage": {
+          "min": 26304.0,
+          "max": 26828.0,
+          "mean": 26465.331107401224,
+          "stddev": 170.7758008614018,
+          "median": 26320.0,
+          "p95": 26824.8,
+          "p99": 26828.0,
+          "iqr": 256.0,
+          "outliers_low": 0,
+          "outliers_high": 0,
+          "unit": "KB",
+          "sample_size": 1797
+        },
+        "max_memory_usage": {
+          "min": 31476.0,
+          "max": 32760.0,
+          "mean": 32059.1,
+          "stddev": 308.98807544827804,
+          "median": 31986.0,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 399.0,
+          "outliers_low": 0,
+          "outliers_high": 0,
+          "unit": "KB",
+          "sample_size": 40
+        }
+      }
+    },
+    {
+      "server_name": "fastmcp",
+      "load_name": "heavy_load",
+      "start_timestamp": "2025-12-09 18:55:01",
+      "duration_seconds": 1210.287833,
+      "metrics": {
+        "response_time": {
+          "min": 0.04232653399958508,
+          "max": 6.339460245999362,
+          "mean": 1.5403797979774223,
+          "stddev": 1.2128208056244356,
+          "median": 1.4563898340011292,
+          "p95": 5.509547153499261,
+          "p99": 6.0989303774282595,
+          "iqr": 0.5292490450001424,
+          "outliers_low": 8611,
+          "outliers_high": 12000,
+          "unit": "seconds",
+          "sample_size": 180000
+        },
+        "throughput_rps": {
+          "min": 151.087749843849,
+          "max": 155.79214644219027,
+          "mean": 152.81010757973687,
+          "stddev": 1.0131715764419809,
+          "median": 152.67420720963872,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 1.2681997341126134,
+          "outliers_low": 0,
+          "outliers_high": 1,
+          "unit": "requests per second",
+          "sample_size": 40
+        },
+        "cpu_time": {
+          "min": 0.0,
+          "max": 0.01,
+          "mean": 9.52653138992093e-07,
+          "stddev": 9.760395171262755e-05,
+          "median": 0.0,
+          "p95": 0.0,
+          "p99": 0.0,
+          "iqr": 0.0,
+          "outliers_low": 0,
+          "outliers_high": 1,
+          "unit": "seconds",
+          "sample_size": 10497
+        },
+        "memory_usage": {
+          "min": 26304.0,
+          "max": 27084.0,
+          "mean": 26663.141087929886,
+          "stddev": 221.32336183162403,
+          "median": 26572.0,
+          "p95": 27080.0,
+          "p99": 27084.0,
+          "iqr": 260.0,
+          "outliers_low": 0,
+          "outliers_high": 0,
+          "unit": "KB",
+          "sample_size": 10497
+        },
+        "max_memory_usage": {
+          "min": 31116.0,
+          "max": 32280.0,
+          "mean": 31690.4,
+          "stddev": 273.6238106298312,
+          "median": 31686.0,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 431.0,
+          "outliers_low": 0,
+          "outliers_high": 0,
+          "unit": "KB",
+          "sample_size": 40
+        }
+      }
+    },
+    {
+      "server_name": "minimcp",
+      "load_name": "sequential_load",
+      "start_timestamp": "2025-12-09 19:15:11",
+      "duration_seconds": 37.989743,
+      "metrics": {
+        "response_time": {
+          "min": 0.004465475998586044,
+          "max": 0.008697082997969119,
+          "mean": 0.0048501269183361725,
+          "stddev": 0.0006801755352598937,
+          "median": 0.004674131001593196,
+          "p95": 0.005542063400571351,
+          "p99": 0.008242479149303109,
+          "iqr": 0.0002910057501139818,
+          "outliers_low": 0,
+          "outliers_high": 78,
+          "unit": "seconds",
+          "sample_size": 1200
+        },
+        "throughput_rps": {
+          "min": 189.86900386673722,
+          "max": 209.36364965601345,
+          "mean": 202.97795387867419,
+          "stddev": 5.39309047717098,
+          "median": 205.60193675687685,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 5.63750156450007,
+          "outliers_low": 2,
+          "outliers_high": 0,
+          "unit": "requests per second",
+          "sample_size": 40
+        },
+        "cpu_time": {
+          "min": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "stddev": 0.0,
+          "median": 0.0,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 0.0,
+          "outliers_low": 0,
+          "outliers_high": 0,
+          "unit": "seconds",
+          "sample_size": 80
+        },
+        "memory_usage": {
+          "min": 26308.0,
+          "max": 26828.0,
+          "mean": 26490.3,
+          "stddev": 183.62953900431356,
+          "median": 26564.0,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 257.0,
+          "outliers_low": 0,
+          "outliers_high": 0,
+          "unit": "KB",
+          "sample_size": 80
+        },
+        "max_memory_usage": {
+          "min": 22076.0,
+          "max": 23352.0,
+          "mean": 22721.2,
+          "stddev": 270.2935915648494,
+          "median": 22652.0,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 257.0,
+          "outliers_low": 1,
+          "outliers_high": 2,
+          "unit": "KB",
+          "sample_size": 40
+        }
+      }
+    },
+    {
+      "server_name": "minimcp",
+      "load_name": "light_load",
+      "start_timestamp": "2025-12-09 19:15:49",
+      "duration_seconds": 87.175911,
+      "metrics": {
+        "response_time": {
+          "min": 0.013581171999248909,
+          "max": 0.07288790600068751,
+          "mean": 0.0334898453468107,
+          "stddev": 0.009256155746698042,
+          "median": 0.03547873299976345,
+          "p95": 0.04519911894967663,
+          "p99": 0.04895317406098911,
+          "iqr": 0.014301059499302937,
+          "outliers_low": 0,
+          "outliers_high": 23,
+          "unit": "seconds",
+          "sample_size": 24000
+        },
+        "throughput_rps": {
+          "min": 420.76914951118687,
+          "max": 440.9388829918316,
+          "mean": 432.3479915174893,
+          "stddev": 4.726573838578394,
+          "median": 431.69803294915744,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 5.572889063492937,
+          "outliers_low": 1,
+          "outliers_high": 0,
+          "unit": "requests per second",
+          "sample_size": 40
+        },
+        "cpu_time": {
+          "min": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "stddev": 0.0,
+          "median": 0.0,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 0.0,
+          "outliers_low": 0,
+          "outliers_high": 0,
+          "unit": "seconds",
+          "sample_size": 560
+        },
+        "memory_usage": {
+          "min": 26304.0,
+          "max": 26832.0,
+          "mean": 26473.3,
+          "stddev": 176.6897243084824,
+          "median": 26486.0,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 256.0,
+          "outliers_low": 0,
+          "outliers_high": 0,
+          "unit": "KB",
+          "sample_size": 560
+        },
+        "max_memory_usage": {
+          "min": 22328.0,
+          "max": 23616.0,
+          "mean": 23016.3,
+          "stddev": 263.4312249077741,
+          "median": 23094.0,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 257.0,
+          "outliers_low": 1,
+          "outliers_high": 1,
+          "unit": "KB",
+          "sample_size": 40
+        }
+      }
+    },
+    {
+      "server_name": "minimcp",
+      "load_name": "medium_load",
+      "start_timestamp": "2025-12-09 19:17:16",
+      "duration_seconds": 193.682595,
+      "metrics": {
+        "response_time": {
+          "min": 0.015708818998973584,
+          "max": 0.460063900998648,
+          "mean": 0.18528981150845775,
+          "stddev": 0.08824849210483485,
+          "median": 0.20924958500108914,
+          "p95": 0.3426258965517263,
+          "p99": 0.3886567771085902,
+          "iqr": 0.13278039874785463,
+          "outliers_low": 0,
+          "outliers_high": 27,
+          "unit": "seconds",
+          "sample_size": 60000
+        },
+        "throughput_rps": {
+          "min": 365.4657009174763,
+          "max": 383.68174094385876,
+          "mean": 371.01214316586334,
+          "stddev": 4.360540324057226,
+          "median": 369.90818952845234,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 2.9192727058045307,
+          "outliers_low": 0,
+          "outliers_high": 6,
+          "unit": "requests per second",
+          "sample_size": 40
+        },
+        "cpu_time": {
+          "min": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "stddev": 0.0,
+          "median": 0.0,
+          "p95": 0.0,
+          "p99": 0.0,
+          "iqr": 0.0,
+          "outliers_low": 0,
+          "outliers_high": 0,
+          "unit": "seconds",
+          "sample_size": 1574
+        },
+        "memory_usage": {
+          "min": 26304.0,
+          "max": 26828.0,
+          "mean": 26503.66709021601,
+          "stddev": 159.3681132519004,
+          "median": 26564.0,
+          "p95": 26825.4,
+          "p99": 26828.0,
+          "iqr": 252.0,
+          "outliers_low": 0,
+          "outliers_high": 0,
+          "unit": "KB",
+          "sample_size": 1574
+        },
+        "max_memory_usage": {
+          "min": 22332.0,
+          "max": 23612.0,
+          "mean": 22972.1,
+          "stddev": 274.51848753772487,
+          "median": 22846.0,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 257.0,
+          "outliers_low": 1,
+          "outliers_high": 1,
+          "unit": "KB",
+          "sample_size": 40
+        }
+      }
+    },
+    {
+      "server_name": "minimcp",
+      "load_name": "heavy_load",
+      "start_timestamp": "2025-12-09 19:20:30",
+      "duration_seconds": 490.549797,
+      "metrics": {
+        "response_time": {
+          "min": 0.01928873499855399,
+          "max": 1.322827739000786,
+          "mean": 0.529854135479892,
+          "stddev": 0.2848935886358146,
+          "median": 0.575052145999507,
+          "p95": 1.1656492268521106,
+          "p99": 1.268029888130186,
+          "iqr": 0.3964120454984368,
+          "outliers_low": 0,
+          "outliers_high": 253,
+          "unit": "seconds",
+          "sample_size": 180000
+        },
+        "throughput_rps": {
+          "min": 370.2627043451291,
+          "max": 412.3639830529857,
+          "mean": 394.05802786288973,
+          "stddev": 12.254464499282998,
+          "median": 395.3473394028165,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 19.851335292432623,
+          "outliers_low": 0,
+          "outliers_high": 0,
+          "unit": "requests per second",
+          "sample_size": 40
+        },
+        "cpu_time": {
+          "min": 0.0,
+          "max": 0.01,
+          "mean": 6.821282401091405e-06,
+          "stddev": 0.00026111644342525895,
+          "median": 0.0,
+          "p95": 0.0,
+          "p99": 0.0,
+          "iqr": 0.0,
+          "outliers_low": 0,
+          "outliers_high": 3,
+          "unit": "seconds",
+          "sample_size": 4398
+        },
+        "memory_usage": {
+          "min": 26004.0,
+          "max": 27088.0,
+          "mean": 26534.80127330605,
+          "stddev": 194.2503164085079,
+          "median": 26564.0,
+          "p95": 26832.0,
+          "p99": 27080.0,
+          "iqr": 260.0,
+          "outliers_low": 0,
+          "outliers_high": 58,
+          "unit": "KB",
+          "sample_size": 4398
+        },
+        "max_memory_usage": {
+          "min": 22328.0,
+          "max": 24124.0,
+          "mean": 23027.0,
+          "stddev": 352.5109927363968,
+          "median": 23004.0,
+          "p95": "N/A (Need at least 1000 samples)",
+          "p99": "N/A (Need at least 1000 samples)",
+          "iqr": 260.0,
+          "outliers_low": 1,
+          "outliers_high": 4,
+          "unit": "KB",
+          "sample_size": 40
+        }
+      }
+    }
+  ]
+}
