@@ -5,9 +5,15 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -18,14 +24,24 @@ jobs:
       - name: Set up Python
         run: uv python install
 
+      - name: Cache uv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock', 'pyproject.toml') }}
+          restore-keys: |
+            uv-${{ runner.os }}-
+
       - name: Cache pre-commit
         uses: actions/cache@v4
         with:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml', '.python-version') }}
+          restore-keys: |
+            pre-commit-${{ runner.os }}-
 
       - name: Install dependencies
         run: uv sync --all-extras
 
       - name: Run pre-commit
-        run: uv run pre-commit run --all-files --show-diff-on-failure
+        run: uv run pre-commit run --all-files --show-diff-on-failure --color=always
