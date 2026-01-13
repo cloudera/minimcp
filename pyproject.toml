@@ -18,14 +18,15 @@ classifiers = [
 
 dependencies = [
     "mcp>=1.24.0",
-    "psutil>=7.2.1",
 ]
 
 [dependency-groups]
 dev = [
     "pre-commit>=4.5.0",
+    "psutil>=7.2.1",
     "pyright>=1.1.407",
     "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
     "ruff>=0.14.9",
     "twine>=6.2.0",
 ]

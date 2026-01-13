@@ -29,6 +29,9 @@ uv run pre-commit install
 ```bash
 # Run both unit and integration tests
 uv run pytest
+
+# Run both unit and integration tests with coverage
+uv run pytest --cov=src/minimcp
 ```
 
 4. Run type checking:
