@@ -20,6 +20,23 @@ After analyzing all 6 benchmark results across different transports and workload
 
 5. **Consistency**: MiniMCP wins across **all 24 test scenarios** (6 transports × 4 load types).
 
+## Test Environment
+
+- **Python Version**: 3.11.9
+- **OS**: Linux 6.8.0-87-generic
+- **Test Date**: December 9, 2025
+- **Total Test Duration**: ~8 hours
+- **Total Requests Tested**: 1,440,000 requests per server
+
+### Load Profiles
+
+| Load       | Concurrency | Iterations | Rounds | Total Messages |
+|------------|-------------|------------|--------|----------------|
+| Sequential | 1           | 30         | 40     | 1,200          |
+| Light      | 20          | 30         | 40     | 24,000         |
+| Medium     | 100         | 15         | 40     | 60,000         |
+| Heavy      | 300         | 15         | 40     | 180,000        |
+
 ## Findings by Transport
 
 | Transport | Mode | Metric | MiniMCP Advantage |
@@ -99,23 +116,6 @@ After analyzing all 6 benchmark results across different transports and workload
 | HTTP | Async | Heavy | 1.540s, 153 RPS, 31.7 MB | 0.530s, 394 RPS, 23.0 MB | 66% faster, 158% higher throughput, 27% less memory |
 | Streamable HTTP | Sync | Heavy | 1.430s, 162 RPS, 31.8 MB | 0.483s, 432 RPS, 22.9 MB | 66% faster, 167% higher throughput, 28% less memory |
 | Streamable HTTP | Async | Heavy | 1.536s, 153 RPS, 31.7 MB | 0.537s, 388 RPS, 23.2 MB | 65% faster, 153% higher throughput, 27% less memory |
-
-## Test Environment
-
-- **Python Version**: 3.11.9
-- **OS**: Linux 6.8.0-87-generic
-- **Test Date**: December 9, 2025
-- **Total Test Duration**: ~8 hours
-- **Total Requests Tested**: 1,440,000 requests per server
-
-### Load Profiles
-
-| Load       | Concurrency | Iterations | Rounds | Total Messages |
-|------------|-------------|------------|--------|----------------|
-| Sequential | 1           | 30         | 40     | 1,200          |
-| Light      | 20          | 30         | 40     | 24,000         |
-| Medium     | 100         | 15         | 40     | 60,000         |
-| Heavy      | 300         | 15         | 40     | 180,000        |
 
 ---
 

@@ -1,7 +1,7 @@
 <div align="center">
 
 <!-- omit in toc -->
-### ![✨ MiniMCP](https://raw.githubusercontent.com/cloudera/minimcp/refs/heads/main/docs/images/minimcp-logo.svg)
+### ![✨ MiniMCP](https://raw.githubusercontent.com/cloudera/minimcp/main/docs/images/minimcp-logo.svg)
 
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
@@ -11,47 +11,49 @@
 A **minimal, stateless, and lightweight** framework for building MCP servers.
 </div>
 
-_MiniMCP is designed with simplicity at its core, it exposes a single asynchronous function to handle MCP messages—Pass in a request message, and it returns the response message_ ⭐ _While bidirectional messaging is supported, it’s not a mandatory requirement—So you can use plain HTTP transport for communication_ ⭐ _MiniMCP is primarily built for remote MCP servers but works just as well for local servers_ ⭐ _MiniMCP ships with built-in transport mechanisms (stdio, HTTP, and 'Smart' Streamable HTTP)—You’re free to use them as it is or extend them to suit your needs_ ⭐ _Makes it possible to add MCP inside any Python web application, and use your existing auth mechanisms_ ⭐ _MiniMCP is built on the [official MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk), ensuring standardized context and resource sharing._ ⭐ _Hook handlers to a MiniMCP instance, wrap it inside any of the provided transports and your MCP server is ready!_
+_Simple async function interface_ ⭐ _Bidirectional messaging is optional_ ⭐ _Remote & local servers_ ⭐ _Built-in transports - stdio, HTTP, and 'Smart' Streamable HTTP_ ⭐ _Embeddable into any Python web application_ ⭐ _Based on official MCP Python specification._
 
 ## Table of Contents
 
-- [What is MCP?](#what-is-mcp)
-- [Why MiniMCP?](#why-minimcp)
-  - [When to Use MiniMCP](#when-to-use-minimcp)
-  - [Currently Supported Features](#currently-supported-features)
-  - [Planned Features](#planned-features)
-  - [Unlikely Features](#unlikely-features)
-- [Benchmark - MiniMCP vs FastMCP](#benchmark---minimcp-vs-fastmcp)
-- [Using MiniMCP](#using-minimcp)
-  - [Installation](#installation)
-  - [Basic Setup](#basic-setup)
-  - [Standalone ASGI App](#standalone-asgi-app)
-  - [FastAPI Integration](#fastapi-integration)
-- [API Reference](#api-reference)
-  - [MiniMCP](#minimcp)
-  - [Primitive Managers/Decorators](#primitive-managersdecorators)
-    - [Tool Manager](#tool-manager)
-    - [Prompt Manager](#prompt-manager)
-    - [Resource Manager](#resource-manager)
-  - [Context Manager](#context-manager)
-- [Transports](#transports)
-  - [Stdio Transport](#stdio-transport)
-  - [HTTP Transport](#http-transport)
-  - [Smart Streamable HTTP Transport](#smart-streamable-http-transport)
-- [Testing](#testing)
-- [Error Handling](#error-handling)
-  - [Protocol-Level Errors](#protocol-level-errors)
-  - [Transport Error Handling](#transport-error-handling)
-- [Examples](#examples)
-  - [1. Math MCP server](#1-math-mcp-server)
-    - [Claude Desktop](#claude-desktop)
-  - [2. Integrating With Web Frameworks](#2-integrating-with-web-frameworks)
-- [Troubleshooting](#troubleshooting)
-- [License](#license)
+- [What is MCP?](https://github.com/cloudera/minimcp/blob/main#what-is-mcp)
+- [Why MiniMCP?](https://github.com/cloudera/minimcp/blob/main#why-minimcp)
+  - [When to Use MiniMCP](https://github.com/cloudera/minimcp/blob/main#when-to-use-minimcp)
+  - [Currently Supported Features](https://github.com/cloudera/minimcp/blob/main#currently-supported-features)
+  - [Planned Features](https://github.com/cloudera/minimcp/blob/main#planned-features)
+  - [Unlikely Features](https://github.com/cloudera/minimcp/blob/main#unlikely-features)
+- [Using MiniMCP](https://github.com/cloudera/minimcp/blob/main#using-minimcp)
+  - [Installation](https://github.com/cloudera/minimcp/blob/main#installation)
+  - [Quick Start - Standalone ASGI App](https://github.com/cloudera/minimcp/blob/main#quick-start---standalone-asgi-app)
+  - [Basic Setup](https://github.com/cloudera/minimcp/blob/main#basic-setup)
+  - [FastAPI Integration](https://github.com/cloudera/minimcp/blob/main#fastapi-integration)
+- [Benchmark - MiniMCP vs FastMCP](https://github.com/cloudera/minimcp/blob/main#benchmark---minimcp-vs-fastmcp)
+- [API Reference](https://github.com/cloudera/minimcp/blob/main#api-reference)
+  - [MiniMCP](https://github.com/cloudera/minimcp/blob/main#minimcp)
+  - [Primitive Managers/Decorators](https://github.com/cloudera/minimcp/blob/main#primitive-managersdecorators)
+    - [Tool Manager](https://github.com/cloudera/minimcp/blob/main#tool-manager)
+    - [Prompt Manager](https://github.com/cloudera/minimcp/blob/main#prompt-manager)
+    - [Resource Manager](https://github.com/cloudera/minimcp/blob/main#resource-manager)
+  - [Context Manager](https://github.com/cloudera/minimcp/blob/main#context-manager)
+- [Transports](https://github.com/cloudera/minimcp/blob/main#transports)
+  - [Stdio Transport](https://github.com/cloudera/minimcp/blob/main#stdio-transport)
+  - [HTTP Transport](https://github.com/cloudera/minimcp/blob/main#http-transport)
+  - [Smart Streamable HTTP Transport](https://github.com/cloudera/minimcp/blob/main#smart-streamable-http-transport)
+- [Testing](https://github.com/cloudera/minimcp/blob/main#testing)
+- [Error Handling](https://github.com/cloudera/minimcp/blob/main#error-handling)
+  - [Protocol-Level Errors](https://github.com/cloudera/minimcp/blob/main#protocol-level-errors)
+  - [Transport Error Handling](https://github.com/cloudera/minimcp/blob/main#transport-error-handling)
+- [Examples](https://github.com/cloudera/minimcp/blob/main#examples)
+  - [1. Math MCP server](https://github.com/cloudera/minimcp/blob/main#1-math-mcp-server)
+    - [Claude Desktop](https://github.com/cloudera/minimcp/blob/main#claude-desktop)
+  - [2. Integrating With Web Frameworks](https://github.com/cloudera/minimcp/blob/main#2-integrating-with-web-frameworks)
+- [FAQ](https://github.com/cloudera/minimcp/blob/main#faq)
+- [Documentation](https://github.com/cloudera/minimcp/blob/main#documentation)
+- [Contributing](https://github.com/cloudera/minimcp/blob/main#contributing)
+- [License](https://github.com/cloudera/minimcp/blob/main#license)
 
 ## What is MCP?
 
-The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is a powerful, standardized way for AI applications to connect with external data sources and tools. It follows a client–server architecture, where communication happens through well-defined MCP messages in the JSON-RPC 2.0 format. The key advantage of MCP is interoperability: once a server supports MCP, any MCP-compatible AI client can connect to it without custom integration code. The official MCP Python SDK provides a low-level implementation of the protocol, while [FastMCP](https://github.com/jlowin/fastmcp) offers a higher-level, Pythonic interface.
+The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is a powerful, standardized way for AI applications to connect with external data sources and tools. It follows a client–server architecture, where communication happens through well-defined MCP messages in the JSON-RPC 2.0 format. The key advantage of MCP is its interoperability: once a server supports MCP, any MCP-compatible AI client can connect to it without custom integration code. The official MCP Python SDK provides a low-level implementation of the protocol, while [FastMCP](https://github.com/jlowin/fastmcp) offers a higher-level, Pythonic interface.
 
 ## Why MiniMCP?
 
@@ -93,7 +95,7 @@ The following features are already available in MiniMCP.
 
 ### Planned Features
 
-These features may be added in the future if need arises.
+These features may be added in the future if the need arises.
 
 - ⚠️ Built-in support for more frameworks — Flask, Django etc.
 - ⚠️ Client primitives - Sampling, Elicitation, Logging
@@ -101,89 +103,47 @@ These features may be added in the future if need arises.
 - ⚠️ Fine-grained access control (FGAC)
 - ⚠️ Pagination
 - ⚠️ Authentication
-- ⚠️ MCP Client (_As shown in the [integration tests](tests/integration/), MiniMCP (All 3 transports) works seamlessly with existing MCP clients, hence there is no immediate need for a custom client_)
+- ⚠️ MCP Client (_As shown in the [integration tests](https://github.com/cloudera/minimcp/blob/main/tests/integration/), MiniMCP (All 3 transports) works seamlessly with existing MCP clients, hence there is no immediate need for a custom client_)
 
 ### Unlikely Features
 
-Only feature that's not expected to be built into MiniMCP in the foreseeable future.
+The only feature that's not expected to be built into MiniMCP in the foreseeable future.
 
 - 🚫 Session management
 
-## Benchmark - MiniMCP vs FastMCP
-
-In our benchmarks, MiniMCP consistently outperforms FastMCP across all transport types and workloads:
-
-- **20-67% faster response times** under load
-- **10-173% higher throughput** (especially HTTP transports under heavy load)
-- **17-28% lower max memory usage** under heavy load
-- **Superior scalability** with increasing concurrency
-
-For detailed benchmark results and analysis, see [benchmark analysis report](benchmarks/reports/MINIMCP_VS_FASTMCP_ANALYSIS.md).
-
 ## Using MiniMCP
 
-The snippets below provide a quick overview of how to use MiniMCP. Check out the [examples](examples/) for more.
+The snippets below provide a quick overview of how to use MiniMCP. Check out the [examples](https://github.com/cloudera/minimcp/blob/main/examples/) for more.
 
 ### Installation
 
-MiniMCP is part of the official MCP Python SDK. Install it using pip or uv:
+**Python Requirement**: Version 3.10 or higher.
+
+MiniMCP is built on top of the official MCP Python SDK. Install it using pip or uv:
 
 ```bash
 # Using pip
-pip install mcp
+pip install minimcp
 
 # Using uv (recommended)
-uv add mcp
+uv add minimcp
 ```
 
-### Basic Setup
-
-The following example demonstrates simple registration and basic message processing using the handle function.
-
-```python
-from mcp.server.minimcp import MiniMCP
-
-
-mcp = MiniMCP(name="MathServer")
-
-# Tool
-@mcp.tool()
-def add(a:int, b:int) -> int:
-    "Add two numbers"
-    return a + b
-
-# Prompt
-@mcp.prompt()
-def problem_solving(problem_description: str) -> str:
-    "Prompt to systematically solve math problems."
-    return f"""You are a math problem solver. Solve the following problem step by step.
-Problem: {problem_description}
-"""
-
-# Resource
-@mcp.resource("math://constants/pi")
-def pi_value() -> float:
-    """Value of π (pi) to be used"""
-    return 3.14
-
-request_msg = '{"jsonrpc": "2.0", "id": "1", "method": "ping"}'
-response_msg = await mcp.handle(request_msg)
-# response_msg = '{"jsonrpc": "2.0", "id": "1", "result": {}}'
-```
-
-### Standalone ASGI App
+### Quick Start - Standalone ASGI App
 
 MiniMCP can be easily deployed as an ASGI application.
 
 ```python
-from mcp.server.minimcp import MiniMCP, HTTPTransport
+# test.py
+
+from minimcp import MiniMCP, HTTPTransport
 
 # Create an MCP instance
 mcp = MiniMCP(name="MathServer")
 
 # Register tools and other primitives
 @mcp.tool(description="Add two numbers")
-def add(a:int, b:int) -> int:
+def add(a: int, b: int) -> int:
     return a + b
 
 # MCP server as ASGI Application
@@ -196,13 +156,51 @@ You can now start the server using uvicorn with four workers as follows.
 uv run uvicorn test:app --workers 4
 ```
 
+### Basic Setup
+
+The following example demonstrates simple registration and basic message processing using the handle function.
+
+```python
+from minimcp import MiniMCP
+
+mcp = MiniMCP(name="MathServer")
+
+# Tool
+@mcp.tool()
+def add(a: int, b: int) -> int:
+    """Add two numbers"""
+    return a + b
+
+# Prompt
+@mcp.prompt()
+def problem_solving(problem_description: str) -> str:
+    """Prompt to systematically solve math problems."""
+    return f"""You are a math problem solver. Solve the following problem step by step.
+Problem: {problem_description}
+"""
+
+# Resource
+@mcp.resource("math://constants/pi")
+def pi_value() -> float:
+    """Value of π (pi) to be used"""
+    return 3.14
+```
+
+Internally, transport layers call `handle()` with the optional `send` callback and `scope` object:
+
+```python
+# request_msg = '{"jsonrpc": "2.0", "id": "1", "method": "ping"}'
+response_msg = await mcp.handle(request_msg, send_callback, scope)
+# response_msg = '{"jsonrpc": "2.0", "id": "1", "result": {}}'
+```
+
 ### FastAPI Integration
 
 This minimal example shows how to expose an MCP tool over HTTP using FastAPI.
 
 ```python
 from fastapi import FastAPI, Request
-from mcp.server.minimcp import MiniMCP, HTTPTransport
+from minimcp import MiniMCP, HTTPTransport
 
 # This can be an existing FastAPI/Starlette app (with authentication, middleware, etc.)
 app = FastAPI()
@@ -213,16 +211,34 @@ transport = HTTPTransport(mcp)
 
 # Register a simple tool
 @mcp.tool(description="Add two numbers")
-def add(a:int, b:int) -> int:
+def add(a: int, b: int) -> int:
     return a + b
 
 # Host MCP server
 @app.post("/mcp")
 async def handler(request: Request):
-    # Pass auth, database and other metadata as part of scope (optional)
+    # Pass auth, database connection and other metadata as part of scope (optional)
     scope = {"user_id": "123", "db": db_connection}
     return await transport.starlette_dispatch(request, scope)
 ```
+
+## Benchmark - MiniMCP vs FastMCP
+
+In our benchmarks, MiniMCP consistently outperforms FastMCP across all transport types and workloads:
+
+- **20-67% faster response times** under load
+- **10-173% higher throughput** (especially HTTP transports under heavy load)
+- **17-28% lower max memory usage** under heavy load
+- **Superior scalability** with increasing concurrency
+
+For detailed benchmark results and analysis, see [benchmark analysis report](https://github.com/cloudera/minimcp/blob/main/benchmarks/reports/MINIMCP_VS_FASTMCP_ANALYSIS.md).
+
+### Test Environment
+
+- **Python Version**: 3.11.9
+- **OS**: Linux 6.8.0-87-generic
+- **Test Date**: December 9, 2025
+- **Total Test Duration**: ~8 hours
 
 ## API Reference
 
@@ -230,7 +246,7 @@ This section provides an overview of the key classes, their functions, and the a
 
 ### MiniMCP
 
-`mcp.server.minimcp.MiniMCP` is the key orchestrator for building an MCP server. It requires a server name as its only mandatory argument; all other arguments are optional. You can also specify the type of the scope object, which is passed through the system for static type checking.
+`from minimcp import MiniMCP` is the key orchestrator for building an MCP server. It requires a server name as its only mandatory argument; all other arguments are optional. You can also specify the type of the scope object, which is passed through the system for static type checking.
 
 MiniMCP provides:
 
@@ -341,6 +357,43 @@ async def process_large_dataset(dataset_id: str) -> str:
     return "Processing complete"
 ```
 
+### Responder
+
+The Responder enables handlers to send notifications back to the client during request processing. It's available via `mcp.context.get_responder()` and automatically resets the idle timeout when sending notifications, ensuring handlers don't time out while actively communicating.
+
+```python
+# Accessing responder
+responder = mcp.context.get_responder()
+
+# Send progress notifications
+await responder.report_progress(progress, total, message)
+
+# Send custom notifications
+await responder.send_notification(notification)
+
+# More would be added in the future
+```
+
+**Example - Reporting progress during long operations:**
+
+```python
+@mcp.tool()
+async def process_files(file_paths: list[str]) -> str:
+    """Process multiple files with progress updates"""
+    responder = mcp.context.get_responder()
+    total = len(file_paths)
+
+    for i, path in enumerate(file_paths):
+        await responder.report_progress(
+            progress=i + 1,
+            total=total,
+            message=f"Processing {path}"
+        )
+        await process_file(path)
+
+    return f"Processed {total} files"
+```
+
 ## Transports
 
 The official MCP specification currently defines two standard transport mechanisms: [stdio](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#stdio) and [Streamable HTTP](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#streamable-http). It also provides flexibility in implementations and also permits custom transports. MiniMCP uses this flexibility to introduce a third option: HTTP transport.
@@ -361,20 +414,20 @@ HTTP is a subset of Streamable HTTP and does not support bidirectional (server-t
 
 ### Smart Streamable HTTP Transport
 
-MiniMCP provides a `Smart` Streamable HTTP implementation that uses SSE only when notifications needs to be send to the client from the server:
+MiniMCP provides a `Smart` Streamable HTTP implementation that uses SSE only when notifications needs to be sent to the client from the server:
 
 - **Simple responses**: If the handler simply returns a message without sending notifications, the server replies with a normal JSON HTTP response.
 - **Event streams**: An SSE (Server-Sent Events) stream is opened **only when** the handler calls `responder.send_notification()` or `responder.report_progress()` _(More would be supported in the future)_.
 - **Stateless design**: Uses polling provided by Starlette EventSourceResponse to maintain an SSE connection.
 - **Future enhancement**: Resumability in case of connection loss could be implemented in a future iteration _(Probably using something like Redis Streams)_, and make polling optional.
 
-Check out [the Math MCP examples](examples/math_mcp/) to see how each transport can be used.
+Check out [the Math MCP examples](https://github.com/cloudera/minimcp/blob/main/examples/math_mcp/) to see how each transport can be used.
 
 ## Testing
 
 MiniMCP comes with a comprehensive test suite of **645 tests** covering unit and integration testing across all components. The test suite validates MCP specification compliance, error handling, edge cases, and real-world scenarios.
 
-For detailed information about the test suite, coverage, and running tests, see the [Testing Guide](./docs/testing-guide.md).
+For detailed information about the test suite, coverage, and running tests, see the [Testing Guide](https://github.com/cloudera/minimcp/blob/main/docs/testing-guide.md).
 
 ## Error Handling
 
@@ -421,7 +474,7 @@ uv sync --frozen --all-extras --dev
 
 ### 1. Math MCP server
 
-[First set of examples](examples/math_mcp/) include a [Math MCP server](examples/math_mcp/math_mcp.py) with prompts, resources and four tools (add, subtract, multiply, and divide). The examples demonstrate how MiniMCP works with different transport mechanisms and frameworks.
+[First set of examples](https://github.com/cloudera/minimcp/blob/main/examples/math_mcp/) include a [Math MCP server](https://github.com/cloudera/minimcp/blob/main/examples/math_mcp/math_mcp.py) with prompts, resources and four tools (add, subtract, multiply, and divide). The examples demonstrate how MiniMCP works with different transport mechanisms and frameworks.
 
 The table below lists the available examples along with the commands to run them.
 
@@ -457,7 +510,7 @@ Claude desktop can be configured as follows to run the Math MCP stdio example. R
 
 ### 2. Integrating With Web Frameworks
 
-[Second set of examples](examples/web_frameworks/) demonstrate how MiniMCP can be integrated with web frameworks like FastAPI and Django. A dummy [Issue Tracker MCP server](examples/web_frameworks/issue_tracker_mcp.py) was created for the same. It provides tools to create, read, and delete issues.
+[Second set of examples](https://github.com/cloudera/minimcp/blob/main/examples/web_frameworks/) demonstrate how MiniMCP can be integrated with web frameworks like FastAPI and Django. A dummy [Issue Tracker MCP server](https://github.com/cloudera/minimcp/blob/main/examples/web_frameworks/issue_tracker_mcp.py) was created for the same. It provides tools to create, read, and delete issues.
 
 The table below lists the available examples along with the commands to run them.
 
@@ -508,11 +561,9 @@ curl -X POST http://127.0.0.1:8000/mcp \
         "params":{"name":"delete_issue","arguments":{"issue_id":"MCP-1"}}}'
 ```
 
-## Troubleshooting
+## FAQ
 
-### Common Issues
-
-#### Q: My handler times out after 30 seconds
+**Q: Why does my handler time out after 30 seconds?**
 
 A: The default idle timeout is 30 seconds. For long-running operations, reset the timeout periodically:
 
@@ -590,6 +641,27 @@ A: HTTP is a subset of Streamable HTTP and does not support bidirectional (serve
 - **HTTP**: Simple request-response only. No server-to-client notifications.
 - **Streamable HTTP**: Supports bidirectional communication. Opens SSE stream when needed.
 - Both are compatible—Streamable HTTP clients can connect to HTTP servers (without bidirectional features).
+
+## Documentation
+
+For detailed information beyond this README, check out the following guides:
+
+- [Testing Guide](https://github.com/cloudera/minimcp/blob/main/docs/testing-guide.md)
+- [Transport Specification Compliance](https://github.com/cloudera/minimcp/blob/main/docs/transport-specification-compliance.md)- [Sample MCP Messages](https://github.com/cloudera/minimcp/blob/main/docs/sample-mcp-messages.md)
+
+Additional resources:
+
+- [DeepWiki API Documentation](https://deepwiki.com/cloudera/minimcp)
+- [Benchmark Results](https://github.com/cloudera/minimcp/blob/main/benchmarks/reports/MINIMCP_VS_FASTMCP_ANALYSIS.md)
+
+## Contributing
+
+Contributions are welcome! Whether you're fixing bugs, adding features, improving documentation, or reporting issues, we'd love to have your help.
+
+- 🐛 Report bugs or request features via [GitHub Issues](https://github.com/cloudera/minimcp/issues)
+- 🔧 Submit pull requests for bug fixes, documentation improvements, or new features
+
+See the [contributing guide](https://github.com/cloudera/minimcp/blob/main/CONTRIBUTING.md) for development setup, workflow, and guidelines.
 
 ## License
 
