@@ -1,6 +1,6 @@
 [project]
 name = "minimcp"
-version = "0.4.0"
+version = "0.4.1"
 description = "A minimal, stateless, and lightweight framework for building remote MCP servers."
 authors = [{ name = "Sreenath Somarajapuram", email = "somarajapuram@gmail.com" }]
 readme = "README.md"
@@ -22,6 +22,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "build>=1.4.0",
     "pre-commit>=4.5.0",
     "psutil>=7.2.1",
     "pyright>=1.1.407",
@@ -33,6 +34,7 @@ dev = [
 
 [project.urls]
 Repository = "https://github.com/cloudera/minimcp"
+PyPI = "https://pypi.org/project/minimcp/"
 
 [build-system]
 requires = ["hatchling"]
@@ -55,7 +57,7 @@ markers = [
 ]
 
 [tool.markdown.lint]
-MD029 = false
 MD013 = false
+MD029 = false
 MD033 = false
 MD041 = false
