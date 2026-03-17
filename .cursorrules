@@ -1,0 +1,84 @@
+# General guidelines
+Always use Markdown for documentation and README files.
+
+# Git
+Commits should be of the following format:
+```
+<type>(<optional scope>): <description>
+
+[optional body]
+```
+
+- Keep commits small and focused.
+- Do not add "Made-with: Cursor".
+
+The type is one of the following:
+- feat: A new feature
+- fix: A bug fix
+- chore: A chore (not user-facing)
+- docs: Documentation changes
+- refactor: A code refactor
+- test: A test change
+- perf: A performance improvement
+- style: A style change
+- build: A build change
+- ci: A CI change
+
+# Python Code Style & Formatting
+- Follow PEP 8 style guidelines.
+- Use type hints for all function signatures and class attributes.
+- Maximum line length is 120 characters (configured in pyproject.toml via ruff).
+- Use `ruff` for both linting and formatting. Do not use Black or flake8.
+- Use `pyright` for type checking. Do not use mypy.
+- Prefer explicit imports over wildcard imports (`from x import *`).
+- The project supports Python 3.10+. Do not use syntax or stdlib features that require 3.11 or later without a compatibility shim.
+
+# Async
+- Use `anyio` for all async primitives: `anyio.sleep()`, `anyio.create_task_group()`, `anyio.Event()`, `anyio.CapacityLimiter()`, etc.
+- Never use `asyncio.sleep()`, `asyncio.create_task()`, `asyncio.gather()`, or other `asyncio`-specific APIs directly.
+
+# MiniMCP API conventions
+- Register tools, prompts, and resources using the decorator interface: `@mcp.tool()`, `@mcp.prompt()`, `@mcp.resource()`.
+- All tool/prompt/resource handler functions must have Pydantic-serializable argument and return types (they are validated by `MCPFunc`).
+- To access the active request context inside a handler, use `mcp.context.get()`. Never pass context as a function argument.
+- To send progress notifications from a handler, use `mcp.context.get_responder().report_progress(...)`.
+- Use the `ScopeT` generic parameter when writing transport or MiniMCP subclasses that need custom per-request scope.
+- Custom exceptions should subclass `MiniMCPError` (user-facing) or `InternalMCPError` (internal-only).
+
+# Documentation
+- All public modules, classes, and functions must have docstrings.
+- Use Google-style docstrings consistently.
+- Include examples in docstrings for complex functions.
+- Document Args in the `__init__` method's docstring, not the class docstring.
+- Check for typos, incorrect parameter names, and formatting inconsistencies in docstrings.
+
+# Error Handling
+- Use specific exception types rather than bare `except:` clauses.
+- Raise `MiniMCPError` subclasses for library-specific user-facing errors.
+- Always provide meaningful error messages.
+
+# Testing
+- Use `pytest` for testing.
+- Name test files as `test_*.py`.
+- Use fixtures for common test setup.
+- Include both unit tests and integration tests.
+- Mark async tests with `@pytest.mark.anyio`, not `@pytest.mark.asyncio`.
+
+# Benchmarks
+- In benchmark server files, `from benchmarks.core import memory_baseline` must be the very first import, before any `mcp` or `minimcp` imports. Violating this silently corrupts memory baseline measurements.
+
+# Logging
+- Use the `logging` module, not `print()` statements.
+- Always use `%s` formatting in log messages, not f-strings: `logger.info("value: %s", val)`.
+- Use appropriate log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL).
+
+# Dependencies
+- Use `uv` for dependency management.
+- Separate dev dependencies from runtime dependencies in `pyproject.toml`.
+- Run `uv run pre-commit run --all-files` before committing to catch lint and format issues.
+
+# API Design
+- Follow semantic versioning (SemVer).
+- Mark deprecated functions with `@deprecated` decorator and warnings.
+- Maintain backward compatibility within major versions.
+- Use `__all__` to explicitly define the public API in each module.
