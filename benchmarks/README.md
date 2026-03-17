@@ -1,6 +1,6 @@
 # MiniMCP vs FastMCP · Benchmarks
 
-Latest report: [Comprehensive Benchmark Report](./reports/COMPREHENSIVE_BENCHMARK_REPORT.md)
+Latest report: [MiniMCP vs FastMCP Analysis](./reports/MINIMCP_VS_FASTMCP_ANALYSIS.md)
 
 Once you've set up a development environment as described in [CONTRIBUTING.md](../../CONTRIBUTING.md), you can run the benchmark scripts.
 

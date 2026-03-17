@@ -11,6 +11,7 @@ from statistics import mean, median, quantiles, stdev
 from typing import Generic, TypeVar
 
 import anyio
+import psutil
 from mcp import ClientSession
 from psutil import Process
 
@@ -18,6 +19,18 @@ from benchmarks.core import server_monitor
 from benchmarks.core.memory_helpers import MEMORY_USAGE_UNIT
 
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+
+def _get_environment_info() -> dict[str, object]:
+    return {
+        "python_version": platform.python_version(),
+        "os": f"{platform.system()} {platform.release()}",
+        "architecture": platform.machine(),
+        "cpu_model": platform.processor() or "unknown",
+        "cpu_physical_cores": psutil.cpu_count(logical=False),
+        "cpu_logical_cores": psutil.cpu_count(logical=True),
+        "total_ram_gb": round(psutil.virtual_memory().total / (1024**3), 2),
+    }
 
 
 @dataclass
@@ -254,9 +267,9 @@ class MCPServerBenchmark(Generic[R]):
             "description": description,
             "metadata": {
                 "timestamp": datetime.now().strftime(TIMESTAMP_FORMAT),
-                "environment": f"Python {platform.python_version()}, {platform.system()} {platform.release()}",
                 "benchmark_file": benchmark_file.name,
                 "duration_seconds": sum(result.duration_seconds for result in self.results),
+                "environment": _get_environment_info(),
             },
             "load_info": [asdict(load) for load in self.loads],
             "metrics_info": {
