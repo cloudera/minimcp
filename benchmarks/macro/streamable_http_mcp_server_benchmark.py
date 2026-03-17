@@ -15,7 +15,12 @@ from mcp.types import CallToolResult
 
 from benchmarks.configs import HTTP_MCP_PATH, LOADS, REPORTS_DIR, SERVER_HOST, SERVER_PORT
 from benchmarks.core.mcp_server_benchmark import BenchmarkIndex, MCPServerBenchmark
-from benchmarks.macro.tool_helpers import async_benchmark_target, result_validator, sync_benchmark_target
+from benchmarks.macro.tool_helpers import (
+    io_bound_async_benchmark_target,
+    noop_benchmark_target,
+    result_validator,
+    sync_benchmark_target,
+)
 from tests.integration.helpers.http import until_available, url_available
 from tests.integration.helpers.process import run_module
 
@@ -46,6 +51,7 @@ async def create_client_server(server_module: ModuleType) -> AsyncGenerator[tupl
 async def http_benchmark(
     name: str,
     target: Callable[[ClientSession, BenchmarkIndex], Awaitable[CallToolResult]],
+    validator: Callable[[CallToolResult, BenchmarkIndex], Awaitable[bool]],
     result_file_path: str,
 ) -> None:
     benchmark = MCPServerBenchmark[CallToolResult](LOADS, name)
@@ -54,14 +60,14 @@ async def http_benchmark(
         "fastmcp",
         partial(create_client_server, fastmcp_http_server),
         target,
-        result_validator,
+        validator,
     )
 
     await benchmark.run(
         "minimcp",
         partial(create_client_server, minimcp_streamable_http_server),
         target,
-        result_validator,
+        validator,
     )
 
     await benchmark.write_json(result_file_path)
@@ -72,13 +78,22 @@ def main() -> None:
         http_benchmark,
         "MCP Server with Streamable HTTP transport - Benchmark with synchronous tool calls",
         sync_benchmark_target,
+        result_validator("compute_all_prime_factors"),
         f"{REPORTS_DIR}/streamable_http_mcp_server_sync_benchmark_results.json",
     )
     anyio.run(
         http_benchmark,
-        "MCP Server with Streamable HTTP transport - Benchmark with asynchronous tool calls",
-        async_benchmark_target,
-        f"{REPORTS_DIR}/streamable_http_mcp_server_async_benchmark_results.json",
+        "MCP Server with Streamable HTTP transport - Benchmark with I/O-bound async tool calls",
+        io_bound_async_benchmark_target,
+        result_validator("io_bound_compute_all_prime_factors"),
+        f"{REPORTS_DIR}/streamable_http_mcp_server_io_bound_async_benchmark_results.json",
+    )
+    anyio.run(
+        http_benchmark,
+        "MCP Server with Streamable HTTP transport - Benchmark with noop tool calls (protocol overhead only)",
+        noop_benchmark_target,
+        result_validator("noop_tool"),
+        f"{REPORTS_DIR}/streamable_http_mcp_server_noop_benchmark_results.json",
     )
 
 

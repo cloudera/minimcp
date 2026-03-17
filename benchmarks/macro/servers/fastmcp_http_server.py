@@ -5,12 +5,13 @@ from benchmarks.core.memory_baseline import get_memory_usage
 from mcp.server.fastmcp import FastMCP
 
 from benchmarks.configs import SERVER_HOST, SERVER_PORT
-from benchmarks.core.sample_tools import async_compute_all_prime_factors, compute_all_prime_factors
+from benchmarks.core.sample_tools import compute_all_prime_factors, io_bound_compute_all_prime_factors, noop_tool
 
 mcp = FastMCP(name="FastMCP", stateless_http=True, host=SERVER_HOST, port=SERVER_PORT, log_level="WARNING")
 
 mcp.add_tool(compute_all_prime_factors)
-mcp.add_tool(async_compute_all_prime_factors)
+mcp.add_tool(io_bound_compute_all_prime_factors)
+mcp.add_tool(noop_tool)
 mcp.add_tool(get_memory_usage)
 
 

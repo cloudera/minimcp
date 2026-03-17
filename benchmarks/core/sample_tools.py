@@ -40,8 +40,8 @@ def compute_all_prime_factors(n: int) -> int:
     return factor_count
 
 
-async def async_compute_all_prime_factors(n: int) -> int:
-    """Async function simulating I/O and synchronous operations - realistic mixed workload."""
+async def io_bound_compute_all_prime_factors(n: int) -> int:
+    """I/O-bound async workload: simulates a fetch, CPU work, then a write — realistic mixed workload."""
 
     # Simulate fetching data from external source (e.g., database, API)
     await anyio.sleep(0.001)  # 1ms I/O simulation
@@ -53,6 +53,11 @@ async def async_compute_all_prime_factors(n: int) -> int:
     await anyio.sleep(0.001)  # 1ms I/O simulation
 
     return result
+
+
+async def noop_tool(n: int) -> int:
+    """Echoes n back immediately without doing any work — measures pure protocol overhead."""
+    return n
 
 
 def get_resource_usage() -> dict[str, float]:
