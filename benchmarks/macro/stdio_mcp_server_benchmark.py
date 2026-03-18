@@ -16,6 +16,7 @@ from mcp.types import CallToolResult
 
 from benchmarks.configs import LOADS, REPORTS_DIR
 from benchmarks.core.mcp_server_benchmark import BenchmarkIndex, MCPServerBenchmark
+from benchmarks.core.cpu_affinity import CPU_SPLIT_FRACTION, set_cpu_affinity
 from benchmarks.macro.tool_helpers import (
     io_bound_async_benchmark_target,
     noop_benchmark_target,
@@ -49,6 +50,8 @@ async def create_client_server(module: ModuleType) -> AsyncGenerator[tuple[Clien
         if not server_process:
             raise RuntimeError(f"Server process not found for module {module_name}")
 
+        set_cpu_affinity(server_process, CPU_SPLIT_FRACTION, 1.0)
+
         async with ClientSession(read, write) as session:
             await session.initialize()
             yield session, server_process
@@ -80,6 +83,8 @@ async def stdio_benchmark(
 
 
 def main() -> None:
+    set_cpu_affinity(psutil.Process(), 0.0, CPU_SPLIT_FRACTION)
+
     anyio.run(
         stdio_benchmark,
         "MCP Server with stdio transport - Benchmark with synchronous tool calls",

@@ -37,11 +37,9 @@ echo 1 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo  # Intel
 echo 0 | sudo tee /sys/devices/system/cpu/cpufreq/boost
 ```
 
-After the above steps, you can run the benchmark scripts with `taskset` to pin to specific CPU cores. This ensures the benchmark always runs on the same CPU cores, avoiding cache misses and CPU migration overhead.
+After the above steps, run the benchmark scripts as normal.
 
-```bash
-taskset -c 0-3 uv run python -m <benchmark.module>
-```
+> **CPU Affinity:** The benchmarks automatically pin the client process to the lower half of CPU cores and each server subprocess to the upper half, so the client and server do not compete for the same cores. CPU affinity is Linux-only. On macOS it is silently skipped — results will still be valid but with more OS scheduling noise.
 
 ### Load Profiles
 

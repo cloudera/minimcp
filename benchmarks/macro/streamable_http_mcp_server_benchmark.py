@@ -16,6 +16,7 @@ from mcp.types import CallToolResult
 
 from benchmarks.configs import HTTP_MCP_PATH, LOADS, REPORTS_DIR, SERVER_HOST, SERVER_PORT
 from benchmarks.core.mcp_server_benchmark import BenchmarkIndex, MCPServerBenchmark
+from benchmarks.core.cpu_affinity import CPU_SPLIT_FRACTION, set_cpu_affinity
 from benchmarks.macro.tool_helpers import (
     io_bound_async_benchmark_target,
     noop_benchmark_target,
@@ -42,6 +43,7 @@ async def create_client_server(server_module: ModuleType) -> AsyncGenerator[tupl
         raise RuntimeError(f"Server is already running at {server_url}")
 
     async with run_module(server_module) as process:
+        set_cpu_affinity(process, CPU_SPLIT_FRACTION, 1.0)
         await until_available(server_url)
         async with AsyncClient(
             headers=default_headers,
@@ -79,6 +81,8 @@ async def http_benchmark(
 
 
 def main() -> None:
+    set_cpu_affinity(psutil.Process(), 0.0, CPU_SPLIT_FRACTION)
+
     anyio.run(
         http_benchmark,
         "MCP Server with Streamable HTTP transport - Benchmark with synchronous tool calls",
