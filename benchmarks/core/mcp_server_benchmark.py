@@ -200,6 +200,7 @@ class MCPServerBenchmark(Generic[R]):
                             # Create a new task group for each iteration and run the target concurrently
                             async with anyio.create_task_group() as tg:
                                 # -- 4. Concurrency
+                                # The task group with start_soon guarantees that requests are in-flight simultaneously
                                 for concurrency_idx in range(load.concurrency):
                                     benchmark_index = BenchmarkIndex(round_idx, iteration_idx, concurrency_idx)
                                     tg.start_soon(

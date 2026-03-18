@@ -1,5 +1,5 @@
 # isort: off
-from httpx import AsyncClient
+from httpx import AsyncClient, Limits
 from benchmarks.macro.servers import fastmcp_http_server, minimcp_http_server
 # isort: on
 
@@ -43,7 +43,10 @@ async def create_client_server(server_module: ModuleType) -> AsyncGenerator[tupl
 
     async with run_module(server_module) as process:
         await until_available(server_url)
-        async with AsyncClient(headers=default_headers) as client:
+        async with AsyncClient(
+            headers=default_headers,
+            limits=Limits(max_connections=None, max_keepalive_connections=None),
+        ) as client:
             async with streamable_http_client(server_url, http_client=client) as (read, write, _):
                 async with ClientSession(read, write) as session:
                     await session.initialize()

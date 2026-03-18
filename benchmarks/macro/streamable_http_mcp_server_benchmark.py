@@ -9,8 +9,9 @@ from types import ModuleType
 
 import anyio
 import psutil
+from httpx import AsyncClient, Limits
 from mcp import ClientSession
-from mcp.client.streamable_http import streamablehttp_client
+from mcp.client.streamable_http import streamable_http_client
 from mcp.types import CallToolResult
 
 from benchmarks.configs import HTTP_MCP_PATH, LOADS, REPORTS_DIR, SERVER_HOST, SERVER_PORT
@@ -42,10 +43,14 @@ async def create_client_server(server_module: ModuleType) -> AsyncGenerator[tupl
 
     async with run_module(server_module) as process:
         await until_available(server_url)
-        async with streamablehttp_client(server_url, headers=default_headers) as (read, write, _):
-            async with ClientSession(read, write) as session:
-                await session.initialize()
-                yield session, process
+        async with AsyncClient(
+            headers=default_headers,
+            limits=Limits(max_connections=None, max_keepalive_connections=None),
+        ) as client:
+            async with streamable_http_client(server_url, http_client=client) as (read, write, _):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    yield session, process
 
 
 async def http_benchmark(
