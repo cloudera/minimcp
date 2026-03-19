@@ -83,8 +83,6 @@ class MCPServerBenchmark(Generic[R]):
     loads: list[Load]
     name: str
     description: str
-    min_sample_per_quartile_bin: int
-
     results: list[Result]
 
     def __init__(self, loads: list[Load], name: str = "", description: str = "", min_sample_per_quartile_bin: int = 10):
@@ -100,9 +98,26 @@ class MCPServerBenchmark(Generic[R]):
         self.loads = loads
         self.name = name
         self.description = description
-        self.min_sample_per_quartile_bin = min_sample_per_quartile_bin
+
+        self._min_samples = 4 * min_sample_per_quartile_bin
+        self._min_samples_full = 100 * min_sample_per_quartile_bin
 
         self.results = []
+        self._validate_loads()
+
+    def _validate_loads(self) -> None:
+        """
+        Raise ValueError if any load produces fewer response time samples than the minimum required by _summarize_data.
+        """
+
+        for load in self.loads:
+            total = load.rounds * load.iterations * load.concurrency
+            if total < self._min_samples:
+                raise ValueError(
+                    f"Load '{load.name}' produces {total} response time samples but needs at least {self._min_samples} "
+                    f"(rounds={load.rounds} * iterations={load.iterations} * concurrency={load.concurrency}). "
+                    "Increase rounds, iterations, or concurrency, or lower min_sample_per_quartile_bin."
+                )
 
     async def _worker(
         self,
@@ -131,25 +146,22 @@ class MCPServerBenchmark(Generic[R]):
     def _summarize_data(self, samples: list[float], unit: str) -> Summary:
         sample_size = len(samples)
 
-        N_100_QUARTILES = 100 * self.min_sample_per_quartile_bin
-        N_4_QUARTILES = 4 * self.min_sample_per_quartile_bin
-
-        if sample_size >= N_100_QUARTILES:
+        if sample_size >= self._min_samples_full:
             qs = quantiles(samples, n=100, method="inclusive")
             q1 = qs[24]  # 25th percentile
             q3 = qs[74]  # 75th percentile
 
             p95 = qs[94]
             p99 = qs[98]
-        elif sample_size >= N_4_QUARTILES:
+        elif sample_size >= self._min_samples:
             qs = quantiles(samples, n=4, method="inclusive")
             q1 = qs[0]  # 25th percentile
             q3 = qs[2]  # 75th percentile
 
-            p95 = f"N/A (Need at least {N_100_QUARTILES} samples)"
+            p95 = f"N/A (Need at least {self._min_samples_full} samples)"
             p99 = p95
         else:
-            raise ValueError(f"Need at least {N_4_QUARTILES} samples to summarize, but got {sample_size}")
+            raise ValueError(f"Need at least {self._min_samples} samples to summarize, but got {sample_size}")
 
         iqr = q3 - q1
         low_cut = q1 - 1.5 * iqr
@@ -189,7 +201,7 @@ class MCPServerBenchmark(Generic[R]):
             load_start_time = datetime.now()
 
             # -- 2. Round
-            for round_idx in range(load.rounds):
+            for _round_idx in range(load.rounds):
                 # Create a new client and server per round and monitor the resource usage
                 async with client_server_lifespan() as (client, server_process):
                     async with server_monitor.monitor_server_resource(server_process) as (cpu_times, memory_rss):

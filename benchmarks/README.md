@@ -41,6 +41,14 @@ After the above steps, run the benchmark scripts as normal.
 
 > **CPU Affinity:** The benchmarks automatically pin the client process to the lower half of CPU cores and each server subprocess to the upper half, so the client and server do not compete for the same cores. CPU affinity is Linux-only. On macOS it is silently skipped — results will still be valid but with more OS scheduling noise.
 
+### Development Mode
+
+Set `BENCHMARK_DEV=1` to run a single lightweight load (`concurrency=1, iterations=1, rounds=40`) instead of the full suite. Useful for quickly verifying benchmark changes without waiting for a full run.
+
+```bash
+BENCHMARK_DEV=1 uv run python -m benchmarks.macro.http_mcp_server_benchmark
+```
+
 ### Load Profiles
 
 The benchmark uses four load profiles to test performance under different concurrency levels:

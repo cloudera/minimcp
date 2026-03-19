@@ -16,9 +16,17 @@ REPORTS_DIR = "benchmarks/reports"
 
 # --- Load Configuration ---
 
-LOADS = [
+_DEV = os.environ.get("BENCHMARK_DEV", "").lower() in ("1", "true")
+
+_FULL_LOADS = [
     Load(name="sequential_load", concurrency=1, iterations=30, rounds=40),
     Load(name="light_load", concurrency=20, iterations=30, rounds=40),
     Load(name="medium_load", concurrency=100, iterations=15, rounds=40),
     Load(name="heavy_load", concurrency=300, iterations=15, rounds=40),
 ]
+
+_DEV_LOADS = [
+    Load(name="dev_load", concurrency=1, iterations=1, rounds=40),
+]
+
+LOADS = _DEV_LOADS if _DEV else _FULL_LOADS
