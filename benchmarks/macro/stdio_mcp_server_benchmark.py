@@ -3,7 +3,7 @@ from benchmarks.macro.servers import fastmcp_stdio_server, minimcp_stdio_server
 # isort: on
 
 import os
-from collections.abc import AsyncGenerator, Awaitable, Callable
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from functools import partial
 from pathlib import Path
@@ -15,14 +15,9 @@ from mcp import ClientSession, StdioServerParameters, stdio_client
 from mcp.types import CallToolResult
 
 from benchmarks.configs import LOADS, REPORTS_DIR
-from benchmarks.core.mcp_server_benchmark import BenchmarkIndex, MCPServerBenchmark
 from benchmarks.core.cpu_affinity import CPU_SPLIT_FRACTION, set_cpu_affinity
-from benchmarks.macro.tool_helpers import (
-    io_bound_async_benchmark_target,
-    noop_benchmark_target,
-    result_validator,
-    sync_benchmark_target,
-)
+from benchmarks.core.mcp_server_benchmark import BenchmarkScenario, MCPServerBenchmark
+from benchmarks.macro.scenarios import ToolScenario
 from tests.integration.helpers.process import find_process
 
 
@@ -59,25 +54,13 @@ async def create_client_server(module: ModuleType) -> AsyncGenerator[tuple[Clien
 
 async def stdio_benchmark(
     name: str,
-    target: Callable[[ClientSession, BenchmarkIndex], Awaitable[CallToolResult]],
-    validator: Callable[[CallToolResult, BenchmarkIndex], Awaitable[bool]],
+    scenario: BenchmarkScenario[CallToolResult],
     result_file_path: str,
 ) -> None:
     benchmark = MCPServerBenchmark[CallToolResult](LOADS, name)
 
-    await benchmark.run(
-        "fastmcp",
-        partial(create_client_server, fastmcp_stdio_server),
-        target,
-        validator,
-    )
-
-    await benchmark.run(
-        "minimcp",
-        partial(create_client_server, minimcp_stdio_server),
-        target,
-        validator,
-    )
+    await benchmark.run("fastmcp", partial(create_client_server, fastmcp_stdio_server), scenario)
+    await benchmark.run("minimcp", partial(create_client_server, minimcp_stdio_server), scenario)
 
     await benchmark.write_json(result_file_path)
 
@@ -88,22 +71,19 @@ def main() -> None:
     anyio.run(
         stdio_benchmark,
         "MCP Server with stdio transport - Benchmark with synchronous tool calls",
-        sync_benchmark_target,
-        result_validator("compute_all_prime_factors"),
+        ToolScenario("compute_all_prime_factors"),
         f"{REPORTS_DIR}/stdio_mcp_server_sync_benchmark_results.json",
     )
     anyio.run(
         stdio_benchmark,
         "MCP Server with stdio transport - Benchmark with I/O-bound async tool calls",
-        io_bound_async_benchmark_target,
-        result_validator("io_bound_compute_all_prime_factors"),
+        ToolScenario("io_bound_compute_all_prime_factors"),
         f"{REPORTS_DIR}/stdio_mcp_server_io_bound_async_benchmark_results.json",
     )
     anyio.run(
         stdio_benchmark,
         "MCP Server with stdio transport - Benchmark with noop tool calls (protocol overhead only)",
-        noop_benchmark_target,
-        result_validator("noop_tool"),
+        ToolScenario("noop_tool"),
         f"{REPORTS_DIR}/stdio_mcp_server_noop_benchmark_results.json",
     )
 

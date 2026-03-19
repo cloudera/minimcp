@@ -2,7 +2,8 @@ import json
 import platform
 import sys
 import time
-from collections.abc import Awaitable, Callable
+from abc import ABC, abstractmethod
+from collections.abc import Callable
 from contextlib import AbstractAsyncContextManager
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -57,13 +58,6 @@ class Load:
     concurrency: int
 
 
-@dataclass(frozen=True, slots=True, order=True)
-class BenchmarkIndex:
-    round_idx: int
-    iteration_idx: int
-    concurrency_idx: int
-
-
 @dataclass
 class Result:
     server_name: str
@@ -75,6 +69,14 @@ class Result:
 
 
 R = TypeVar("R")  # Result type
+
+
+class BenchmarkScenario(ABC, Generic[R]):
+    @abstractmethod
+    async def target(self, client: ClientSession, iteration_idx: int, concurrency_idx: int) -> R: ...
+
+    @abstractmethod
+    def validate_result(self, result: R, iteration_idx: int, concurrency_idx: int) -> bool: ...
 
 
 class MCPServerBenchmark(Generic[R]):
@@ -104,18 +106,18 @@ class MCPServerBenchmark(Generic[R]):
 
     async def _worker(
         self,
-        benchmark_index: BenchmarkIndex,
+        iteration_idx: int,
+        concurrency_idx: int,
         elapsed_times: list[float],
         client: ClientSession,
-        target: Callable[[ClientSession, BenchmarkIndex], Awaitable[R]],
-        result_validator: Callable[[R, BenchmarkIndex], Awaitable[bool]] | None = None,
+        scenario: BenchmarkScenario[R],
     ) -> None:
         t0 = time.perf_counter()
-        result = await target(client, benchmark_index)
+        result = await scenario.target(client, iteration_idx, concurrency_idx)
         elapsed_times.append(time.perf_counter() - t0)
-
-        if result_validator is not None:
-            assert await result_validator(result, benchmark_index), "Results do not match, benchmark run failed"
+        assert scenario.validate_result(result, iteration_idx, concurrency_idx), (
+            "Results do not match, benchmark run failed"
+        )
 
     async def _get_memory_usage(self, client: ClientSession) -> tuple[float, float]:
         memory_usage = (await client.call_tool("get_memory_usage")).structuredContent
@@ -172,8 +174,7 @@ class MCPServerBenchmark(Generic[R]):
         self,
         server_name: str,
         client_server_lifespan: Callable[[], AbstractAsyncContextManager[tuple[ClientSession, Process]]],
-        target: Callable[[ClientSession, BenchmarkIndex], Awaitable[R]],
-        result_validator: Callable[[R, BenchmarkIndex], Awaitable[bool]] | None = None,
+        scenario: BenchmarkScenario[R],
     ) -> None:
         print(f"Running benchmark for server {server_name} ", end="", flush=True)
 
@@ -202,14 +203,13 @@ class MCPServerBenchmark(Generic[R]):
                                 # -- 4. Concurrency
                                 # The task group with start_soon guarantees that requests are in-flight simultaneously
                                 for concurrency_idx in range(load.concurrency):
-                                    benchmark_index = BenchmarkIndex(round_idx, iteration_idx, concurrency_idx)
                                     tg.start_soon(
                                         self._worker,
-                                        benchmark_index,
+                                        iteration_idx,
+                                        concurrency_idx,
                                         elapsed_times,
                                         client,
-                                        target,
-                                        result_validator,
+                                        scenario,
                                     )
 
                         # Throughput (RPS) calculation - Including the overhead of the benchmark and validation.
