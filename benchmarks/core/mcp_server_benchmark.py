@@ -9,7 +9,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from statistics import mean, median, quantiles, stdev
-from typing import Generic, TypeVar
+from typing import Generic, NamedTuple, TypeVar
 
 import anyio
 import psutil
@@ -59,13 +59,31 @@ class Load:
 
 
 @dataclass
-class Result:
+class RunResult:
     server_name: str
     load_name: str
-    start_timestamp: str
-    duration_seconds: float
-
     metrics: dict[str, Summary]
+
+
+@dataclass
+class ServerConfig:
+    name: str
+    lifespan: Callable[[], AbstractAsyncContextManager[tuple[ClientSession, Process]]]
+
+
+class RunServerResult(NamedTuple):
+    response_time: list[float]
+    throughput_rps: list[float]
+    cpu_time: list[float]
+    memory_usage: list[float]
+    max_memory_usage: list[float]
+
+    def extend(self, other: "RunServerResult") -> None:
+        self.response_time.extend(other.response_time)
+        self.throughput_rps.extend(other.throughput_rps)
+        self.cpu_time.extend(other.cpu_time)
+        self.memory_usage.extend(other.memory_usage)
+        self.max_memory_usage.extend(other.max_memory_usage)
 
 
 R = TypeVar("R")  # Result type
@@ -83,7 +101,7 @@ class MCPServerBenchmark(Generic[R]):
     loads: list[Load]
     name: str
     description: str
-    results: list[Result]
+    results: list[RunResult]
 
     def __init__(self, loads: list[Load], name: str = "", description: str = "", min_sample_per_quartile_bin: int = 10):
         """
@@ -182,87 +200,104 @@ class MCPServerBenchmark(Generic[R]):
             sample_size=sample_size,
         )
 
+    async def _run_server(
+        self,
+        server_config: ServerConfig,
+        scenario: BenchmarkScenario[R],
+        load: Load,
+    ) -> RunServerResult:
+        async with server_config.lifespan() as (client, server_process):
+            async with server_monitor.monitor_server_resource(server_process) as (cpu_times, memory_rss):
+                round_start_time = time.perf_counter()
+                elapsed_times: list[float] = []
+
+                # -- 1. Iteration
+                for iteration_idx in range(load.iterations):
+                    # Create a new task group for each iteration and run the target concurrently
+                    async with anyio.create_task_group() as tg:
+                        # -- 2. Concurrency
+                        # The task group with start_soon guarantees that requests are in-flight simultaneously
+                        for concurrency_idx in range(load.concurrency):
+                            tg.start_soon(
+                                self._worker,
+                                iteration_idx,
+                                concurrency_idx,
+                                elapsed_times,
+                                client,
+                                scenario,
+                            )
+
+                # Throughput (RPS) calculation - Including the overhead of the benchmark and validation.
+                round_wall_clock_time = time.perf_counter() - round_start_time
+                throughput_rps = load.iterations * load.concurrency / round_wall_clock_time
+
+                # Get the max memory usage
+                delta_maxrss, baseline_rss = await self._get_memory_usage(client)
+                memory_rss_delta = [m - baseline_rss for m in memory_rss]
+
+                return RunServerResult(
+                    response_time=elapsed_times,
+                    throughput_rps=[throughput_rps],
+                    cpu_time=cpu_times,
+                    memory_usage=memory_rss_delta,
+                    max_memory_usage=[delta_maxrss],
+                )
+
     async def run(
         self,
-        server_name: str,
-        client_server_lifespan: Callable[[], AbstractAsyncContextManager[tuple[ClientSession, Process]]],
+        servers: list[ServerConfig],
         scenario: BenchmarkScenario[R],
+        result_file_path: str,
     ) -> None:
-        print(f"Running benchmark for server {server_name} ", end="", flush=True)
+        server_names = ", ".join(s.name for s in servers)
+        print(f"Running benchmark for servers [{server_names}] ", end="", flush=True)
+
+        run_start_time = datetime.now()
 
         # -- 1. Load
         for load in self.loads:
-            response_time_samples: list[float] = []
-            throughput_rps_samples: list[float] = []
-            cpu_time_samples: list[float] = []
-            memory_usage_samples: list[float] = []
-            max_memory_usage_samples: list[float] = []
-
-            load_start_time = datetime.now()
+            # Per-server sample accumulators reset for each load
+            accumulated_samples: dict[str, RunServerResult] = {
+                server.name: RunServerResult([], [], [], [], []) for server in servers
+            }
 
             # -- 2. Round
             for _round_idx in range(load.rounds):
-                # Create a new client and server per round and monitor the resource usage
-                async with client_server_lifespan() as (client, server_process):
-                    async with server_monitor.monitor_server_resource(server_process) as (cpu_times, memory_rss):
-                        round_start_time = time.perf_counter()
-                        elapsed_times: list[float] = []
+                # -- 3. Server (interleaved per round to reduce ordering bias)
+                for server in servers:
+                    result = await self._run_server(server, scenario, load)
+                    accumulated_samples[server.name].extend(result)
+                    print(".", end="", flush=True)
 
-                        # -- 3. Iteration
-                        for iteration_idx in range(load.iterations):
-                            # Create a new task group for each iteration and run the target concurrently
-                            async with anyio.create_task_group() as tg:
-                                # -- 4. Concurrency
-                                # The task group with start_soon guarantees that requests are in-flight simultaneously
-                                for concurrency_idx in range(load.concurrency):
-                                    tg.start_soon(
-                                        self._worker,
-                                        iteration_idx,
-                                        concurrency_idx,
-                                        elapsed_times,
-                                        client,
-                                        scenario,
-                                    )
+            # Summarize and save results for each server
+            for server in servers:
+                s = accumulated_samples[server.name]
+                self.results.append(
+                    RunResult(
+                        server_name=server.name,
+                        load_name=load.name,
+                        metrics={
+                            "response_time": self._summarize_data(s.response_time, "seconds"),
+                            "throughput_rps": self._summarize_data(s.throughput_rps, "requests per second"),
+                            "cpu_time": self._summarize_data(s.cpu_time, server_monitor.CPU_TIME_UNIT),
+                            "memory_usage": self._summarize_data(s.memory_usage, MEMORY_USAGE_UNIT),
+                            "max_memory_usage": self._summarize_data(s.max_memory_usage, MEMORY_USAGE_UNIT),
+                        },
+                    )
+                )
 
-                        # Throughput (RPS) calculation - Including the overhead of the benchmark and validation.
-                        round_wall_clock_time = time.perf_counter() - round_start_time
-                        throughput_rps_samples.append(load.iterations * load.concurrency / round_wall_clock_time)
-
-                        # Get the max memory usage
-                        delta_maxrss, baseline_rss = await self._get_memory_usage(client)
-                        max_memory_usage_samples.append(delta_maxrss)
-                        memory_rss_delta = [m - baseline_rss for m in memory_rss]
-
-                        # Append metric samples
-                        response_time_samples += elapsed_times
-                        cpu_time_samples += cpu_times
-                        memory_usage_samples += memory_rss_delta
-
-                print(".", end="", flush=True)  # -- Round end
-
-            load_end_time = datetime.now()
             print("*", end="", flush=True)  # -- Load end
 
-            # Summarize and save the results for current load
-            self.results.append(
-                Result(
-                    server_name=server_name,
-                    load_name=load.name,
-                    start_timestamp=load_start_time.strftime(TIMESTAMP_FORMAT),
-                    duration_seconds=(load_end_time - load_start_time).total_seconds(),
-                    metrics={
-                        "response_time": self._summarize_data(response_time_samples, "seconds"),
-                        "throughput_rps": self._summarize_data(throughput_rps_samples, "requests per second"),
-                        "cpu_time": self._summarize_data(cpu_time_samples, server_monitor.CPU_TIME_UNIT),
-                        "memory_usage": self._summarize_data(memory_usage_samples, MEMORY_USAGE_UNIT),
-                        "max_memory_usage": self._summarize_data(max_memory_usage_samples, MEMORY_USAGE_UNIT),
-                    },
-                )
-            )
-
+        run_end_time = datetime.now()
         print(" done")  # -- Run end
 
-    async def write_json(self, file_path: str):
+        self._write_json(
+            result_file_path,
+            start_timestamp=run_start_time.strftime(TIMESTAMP_FORMAT),
+            duration_seconds=(run_end_time - run_start_time).total_seconds(),
+        )
+
+    def _write_json(self, file_path: str, start_timestamp: str, duration_seconds: float) -> None:
         benchmark_file = Path(sys.argv[0])
         name = self.name or benchmark_file.stem
 
@@ -279,9 +314,10 @@ class MCPServerBenchmark(Generic[R]):
             "name": name,
             "description": description,
             "metadata": {
-                "timestamp": datetime.now().strftime(TIMESTAMP_FORMAT),
+                "start_timestamp": start_timestamp,
+                "write_timestamp": datetime.now().strftime(TIMESTAMP_FORMAT),
                 "benchmark_file": benchmark_file.name,
-                "duration_seconds": sum(result.duration_seconds for result in self.results),
+                "duration_seconds": duration_seconds,
                 "environment": _get_environment_info(),
             },
             "load_info": [asdict(load) for load in self.loads],

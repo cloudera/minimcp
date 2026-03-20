@@ -56,7 +56,7 @@ def organize_results(results: dict[str, Any]) -> tuple[dict[str, Any], dict[str,
 def print_metadata(results: dict[str, Any]) -> None:
     """Print metadata."""
     min, sec = divmod(results["metadata"]["duration_seconds"], 60)
-    print(f"Date: {results['metadata']['timestamp']}")
+    print(f"Date: {results['metadata']['write_timestamp']}")
     print(f"Duration: {min:.0f}m {sec:.0f}s\n")
 
 
