@@ -103,7 +103,14 @@ class MCPServerBenchmark(Generic[R]):
     description: str
     results: list[RunResult]
 
-    def __init__(self, loads: list[Load], name: str = "", description: str = "", min_sample_per_quartile_bin: int = 10):
+    def __init__(
+        self,
+        loads: list[Load],
+        name: str = "",
+        description: str = "",
+        min_sample_per_quartile_bin: int = 10,
+        warmup_iterations: int = 2,
+    ):
         """
         Args:
             loads: The loads to run the benchmark for.
@@ -111,6 +118,9 @@ class MCPServerBenchmark(Generic[R]):
             description: A string that describes the benchmark.
             min_sample_per_quartile_bin: The minimum number of samples per quartile bin.
                 Ideally around 10 samples per bin to get a good summary.
+            warmup_iterations: Number of iterations to run before timing begins for each
+                server round. Warms up the server process (caches, socket buffers) so that
+                measured samples reflect steady-state performance.
         """
 
         self.loads = loads
@@ -119,6 +129,7 @@ class MCPServerBenchmark(Generic[R]):
 
         self._min_samples = 4 * min_sample_per_quartile_bin
         self._min_samples_full = 100 * min_sample_per_quartile_bin
+        self._warmup_iterations = warmup_iterations
 
         self.results = []
         self._validate_loads()
@@ -145,6 +156,10 @@ class MCPServerBenchmark(Generic[R]):
         client: ClientSession,
         scenario: BenchmarkScenario[R],
     ) -> None:
+        """
+        Executes the target function, tracks the elapsed time and validates the result.
+        """
+
         t0 = time.perf_counter()
         result = await scenario.target(client, iteration_idx, concurrency_idx)
         elapsed_times.append(time.perf_counter() - t0)
@@ -207,8 +222,14 @@ class MCPServerBenchmark(Generic[R]):
         load: Load,
     ) -> RunServerResult:
         async with server_config.lifespan() as (client, server_process):
+            # Warmup: bring the server to steady state before monitoring and timing begin.
+            for iteration_idx in range(self._warmup_iterations):
+                async with anyio.create_task_group() as tg:
+                    for concurrency_idx in range(load.concurrency):
+                        tg.start_soon(scenario.target, client, iteration_idx, concurrency_idx)
+
             async with server_monitor.monitor_server_resource(server_process) as (cpu_times, memory_rss):
-                round_start_time = time.perf_counter()
+                start_time = time.perf_counter()
                 elapsed_times: list[float] = []
 
                 # -- 1. Iteration
@@ -228,8 +249,7 @@ class MCPServerBenchmark(Generic[R]):
                             )
 
                 # Throughput (RPS) calculation - Including the overhead of the benchmark and validation.
-                round_wall_clock_time = time.perf_counter() - round_start_time
-                throughput_rps = load.iterations * load.concurrency / round_wall_clock_time
+                throughput_rps = load.iterations * load.concurrency / (time.perf_counter() - start_time)
 
                 # Get the max memory usage
                 delta_maxrss, baseline_rss = await self._get_memory_usage(client)
@@ -269,7 +289,7 @@ class MCPServerBenchmark(Generic[R]):
             # -- 2. Round
             for round_idx in range(load.rounds):
                 # -- 3. Server
-                for server in (servers if round_idx < mid_index else reversed_servers):
+                for server in servers if round_idx < mid_index else reversed_servers:
                     result = await self._run_server(server, scenario, load)
                     accumulated_samples[server.name].extend(result)
                     print(".", end="", flush=True)
