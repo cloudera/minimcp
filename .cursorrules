@@ -11,6 +11,7 @@ Commits should be of the following format:
 
 - Keep commits small and focused.
 - Do not add "Made-with: Cursor".
+- Commit messages should explain why its being done, not what its doing.
 
 The type is one of the following:
 - feat: A new feature

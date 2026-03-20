@@ -5,7 +5,7 @@ import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from contextlib import AbstractAsyncContextManager
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from statistics import mean, median, quantiles, stdev
@@ -69,6 +69,7 @@ class RunResult:
 class ServerConfig:
     name: str
     lifespan: Callable[[], AbstractAsyncContextManager[tuple[ClientSession, Process]]]
+    metadata: dict[str, str] = field(default_factory=dict)
 
 
 class RunServerResult(NamedTuple):
@@ -312,7 +313,7 @@ class MCPServerBenchmark(Generic[R]):
             print("*", end="", flush=True)  # -- Load end
 
         run_end_time = datetime.now()
-        print(" done")  # -- Run end
+        print(" Done")  # -- Run end
 
         self._write_json(
             results,
@@ -351,6 +352,7 @@ class MCPServerBenchmark(Generic[R]):
                 "duration_seconds": duration_seconds,
                 "environment": _get_environment_info(),
             },
+            "server_info": [{"name": s.name, "metadata": s.metadata} for s in self.servers],
             "load_info": [asdict(load) for load in self.loads],
             "metrics_info": {
                 "response_time": {

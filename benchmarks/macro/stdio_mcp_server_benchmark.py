@@ -2,6 +2,7 @@
 from benchmarks.macro.servers import fastmcp_stdio_server, minimcp_stdio_server
 # isort: on
 
+import importlib.metadata
 import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -57,8 +58,16 @@ def main() -> None:
     benchmark = MCPServerBenchmark(
         LOADS,
         servers=[
-            ServerConfig("fastmcp", partial(create_client_server, fastmcp_stdio_server)),
-            ServerConfig("minimcp", partial(create_client_server, minimcp_stdio_server)),
+            ServerConfig(
+                "fastmcp",
+                partial(create_client_server, fastmcp_stdio_server),
+                metadata={"version": importlib.metadata.version("fastmcp")},
+            ),
+            ServerConfig(
+                "minimcp",
+                partial(create_client_server, minimcp_stdio_server),
+                metadata={"version": importlib.metadata.version("minimcp")},
+            ),
         ],
         reports_dir=REPORTS_DIR,
     )
