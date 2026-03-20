@@ -1,11 +1,12 @@
+from collections.abc import Iterable
 from typing import Any
 from unittest.mock import Mock, patch
 
 import anyio
-import mcp.types as types
 import pytest
 from mcp.server.fastmcp.utilities.func_metadata import FuncMetadata
 from mcp.server.lowlevel.server import Server
+from mcp.types import CallToolResult, ContentBlock, TextContent, Tool, ToolAnnotations
 from pydantic import BaseModel, Field
 
 from minimcp.exceptions import (
@@ -57,7 +58,7 @@ class TestToolManager:
         result = tool_manager.add(sample_add_tool)
 
         # Verify the returned tool
-        assert isinstance(result, types.Tool)
+        assert isinstance(result, Tool)
         assert result.name == "sample_add_tool"
         assert result.description == "A sample tool for testing."
         assert result.inputSchema is not None
@@ -77,7 +78,7 @@ class TestToolManager:
         def basic_func(value: int) -> int:
             return value * 2
 
-        custom_annotations = types.ToolAnnotations(title="math")
+        custom_annotations = ToolAnnotations(title="math")
         custom_meta = {"version": "1.0"}
 
         result = tool_manager.add(
@@ -340,9 +341,11 @@ class TestToolManager:
 
         tool_manager.add(multiply)
 
-        result: Any = await tool_manager.call("multiply", {"x": 3, "y": 4})
-        assert isinstance(result[0][0], types.TextContent)
-        assert result[1]["result"] == 12
+        result = await tool_manager.call("multiply", {"x": 3, "y": 4})
+        assert isinstance(result, CallToolResult)
+        assert isinstance(result.content[0], TextContent)
+        assert result.structuredContent is not None
+        assert result.structuredContent["result"] == 12
 
     async def test_call_tool_async_function(self, tool_manager: ToolManager):
         """Test calling an asynchronous tool."""
@@ -354,9 +357,11 @@ class TestToolManager:
 
         tool_manager.add(async_multiply)
 
-        result: Any = await tool_manager.call("async_multiply", {"x": 5, "y": 6})
-        assert isinstance(result[0][0], types.TextContent)
-        assert result[1]["result"] == 30
+        result = await tool_manager.call("async_multiply", {"x": 5, "y": 6})
+        assert isinstance(result, CallToolResult)
+        assert isinstance(result.content[0], TextContent)
+        assert result.structuredContent is not None
+        assert result.structuredContent["result"] == 30
 
     async def test_call_tool_with_default_arguments(self, tool_manager: ToolManager):
         """Test calling a tool with default arguments."""
@@ -368,12 +373,16 @@ class TestToolManager:
         tool_manager.add(greet)
 
         # Call with just required argument
-        result: Any = await tool_manager.call("greet", {"name": "Alice"})
-        assert result[1]["result"] == "Hello, Alice!"
+        result = await tool_manager.call("greet", {"name": "Alice"})
+        assert isinstance(result, CallToolResult)
+        assert result.structuredContent is not None
+        assert result.structuredContent["result"] == "Hello, Alice!"
 
         # Call with both arguments
         result = await tool_manager.call("greet", {"name": "Bob", "greeting": "Hi"})
-        assert result[1]["result"] == "Hi, Bob!"
+        assert isinstance(result, CallToolResult)
+        assert result.structuredContent is not None
+        assert result.structuredContent["result"] == "Hi, Bob!"
 
     async def test_call_nonexistent_tool_raises_error(self, tool_manager: ToolManager):
         """Test that calling a non-existent tool raises PrimitiveError."""
@@ -394,15 +403,16 @@ class TestToolManager:
 
         tool_manager.add(get_user_info)
 
-        result: Any = await tool_manager.call("get_user_info", {"user_id": 123})
+        result = await tool_manager.call("get_user_info", {"user_id": 123})
+        assert isinstance(result, CallToolResult)
         expected = {
             "id": 123,
             "name": "User 123",
             "active": True,
             "metadata": {"created": "2024-01-01", "role": "user"},
         }
-        assert isinstance(result[0][0], types.TextContent)
-        assert result[1] == expected
+        assert isinstance(result.content[0], TextContent)
+        assert result.structuredContent == expected
 
     async def test_call_tool_argument_validation(self, tool_manager: ToolManager):
         """Test that tool arguments are properly validated by MCPFunc."""
@@ -414,11 +424,15 @@ class TestToolManager:
         tool_manager.add(strict_tool)
 
         # Valid call should work
-        result: Any = await tool_manager.call("strict_tool", {"required_int": 42})
-        assert result[1]["result"] == "42-default"
+        result = await tool_manager.call("strict_tool", {"required_int": 42})
+        assert isinstance(result, CallToolResult)
+        assert result.structuredContent is not None
+        assert result.structuredContent["result"] == "42-default"
 
         result = await tool_manager.call("strict_tool", {"required_int": "42"})
-        assert result[1]["result"] == "42-default"
+        assert isinstance(result, CallToolResult)
+        assert result.structuredContent is not None
+        assert result.structuredContent["result"] == "42-default"
 
         # The actual validation happens in MCPFunc, so we test that it's called
         # by ensuring the tool works with valid arguments and would fail with invalid ones
@@ -437,12 +451,16 @@ class TestToolManager:
         tool_manager.add(typed_tool)
 
         # Valid types should work
-        result: Any = await tool_manager.call("typed_tool", {"count": 5, "message": "hello"})
-        assert result[1]["result"] == "Count 5: hello"
+        result = await tool_manager.call("typed_tool", {"count": 5, "message": "hello"})
+        assert isinstance(result, CallToolResult)
+        assert result.structuredContent is not None
+        assert result.structuredContent["result"] == "Count 5: hello"
 
         # String numbers should be coerced to int by pydantic
         result = await tool_manager.call("typed_tool", {"count": "10", "message": "world"})
-        assert result[1]["result"] == "Count 10: world"
+        assert isinstance(result, CallToolResult)
+        assert result.structuredContent is not None
+        assert result.structuredContent["result"] == "Count 10: world"
 
         with pytest.raises(InvalidArgumentsError, match="Input should be a valid integer"):
             await tool_manager.call("typed_tool", {"count": "not_a_number", "message": "hello"})
@@ -457,8 +475,10 @@ class TestToolManager:
         tool_manager.add(static_tool)
 
         # Call with empty dict
-        result: Any = await tool_manager.call("static_tool", {})
-        assert result[1]["result"] == "static result"
+        result = await tool_manager.call("static_tool", {})
+        assert isinstance(result, CallToolResult)
+        assert result.structuredContent is not None
+        assert result.structuredContent["result"] == "static result"
 
     async def test_call_tool_with_complex_arguments(self, tool_manager: ToolManager):
         """Test calling a tool with complex argument types."""
@@ -474,13 +494,15 @@ class TestToolManager:
 
         tool_manager.add(process_task)
 
-        result: Any = await tool_manager.call(
+        result = await tool_manager.call(
             "process_task", {"task_ids": [1, 2, 3], "config": {"priority": 5, "timeout": 30.0}}
         )
-
-        assert result[1]["processed"] == [1, 2, 3]
-        assert result[1]["priority"] == 5
-        assert result[1]["timeout"] == 30.0
+        assert isinstance(result, CallToolResult)
+        sc = result.structuredContent
+        assert sc is not None
+        assert sc["processed"] == [1, 2, 3]
+        assert sc["priority"] == 5
+        assert sc["timeout"] == 30.0
 
     async def test_call_bound_method_tool(self, tool_manager: ToolManager):
         """Test calling a tool that is a bound method."""
@@ -496,8 +518,10 @@ class TestToolManager:
         processor = DataProcessor("PROCESSED")
         tool_manager.add(processor.process)
 
-        result: Any = await tool_manager.call("process", {"data": "test data"})
-        assert result[1]["result"] == "PROCESSED: test data"
+        result = await tool_manager.call("process", {"data": "test data"})
+        assert isinstance(result, CallToolResult)
+        assert result.structuredContent is not None
+        assert result.structuredContent["result"] == "PROCESSED: test data"
 
     async def test_call_tool_function_raises_exception(self, tool_manager: ToolManager):
         """Test that exceptions in tool functions are properly handled."""
@@ -511,8 +535,10 @@ class TestToolManager:
         tool_manager.add(failing_tool)
 
         # Should succeed when not failing
-        result: Any = await tool_manager.call("failing_tool", {"should_fail": False})
-        assert result[1]["result"] == "Success"
+        result = await tool_manager.call("failing_tool", {"should_fail": False})
+        assert isinstance(result, CallToolResult)
+        assert result.structuredContent is not None
+        assert result.structuredContent["result"] == "Success"
 
         with pytest.raises(MCPRuntimeError, match="Tool failed"):
             await tool_manager.call("failing_tool", {"should_fail": True})
@@ -530,8 +556,10 @@ class TestToolManager:
         tool_manager.add(async_failing_tool)
 
         # Should succeed when not failing
-        result: Any = await tool_manager.call("async_failing_tool", {"should_fail": False})
-        assert result[1]["result"] == "Success"
+        result = await tool_manager.call("async_failing_tool", {"should_fail": False})
+        assert isinstance(result, CallToolResult)
+        assert result.structuredContent is not None
+        assert result.structuredContent["result"] == "Success"
 
         with pytest.raises(MCPRuntimeError, match="Async tool error"):
             await tool_manager.call("async_failing_tool", {"should_fail": True})
@@ -546,8 +574,10 @@ class TestToolManager:
         tool_manager.add(required_args_tool)
 
         # Should work with all params
-        result: Any = await tool_manager.call("required_args_tool", {"required_param": "value"})
-        assert result[1]["result"] == "value-default"
+        result = await tool_manager.call("required_args_tool", {"required_param": "value"})
+        assert isinstance(result, CallToolResult)
+        assert result.structuredContent is not None
+        assert result.structuredContent["result"] == "value-default"
 
         # Should fail without required param
         with pytest.raises(InvalidArgumentsError, match="Field required"):
@@ -556,6 +586,140 @@ class TestToolManager:
         # Should fail with only optional param
         with pytest.raises(InvalidArgumentsError, match="Field required"):
             await tool_manager.call("required_args_tool", {"optional_param": "value"})
+
+    async def test_call_tool_returns_call_tool_result_directly(self, tool_manager: ToolManager):
+        """Test that a tool returning CallToolResult directly is passed through unchanged.
+
+        When a handler's return annotation is CallToolResult, FuncMetadata sets
+        output_schema=None and convert_result returns the value as-is (no Pydantic
+        wrapping, no structuredContent). _call() must not re-wrap it in another
+        CallToolResult.
+        """
+
+        def explicit_result_tool(msg: str) -> CallToolResult:
+            """A tool that builds its own CallToolResult."""
+            return CallToolResult(
+                content=[TextContent(type="text", text=msg)],
+                isError=False,
+            )
+
+        tool_manager.add(explicit_result_tool)
+
+        result = await tool_manager.call("explicit_result_tool", {"msg": "hello"})
+        assert isinstance(result, CallToolResult)
+        assert len(result.content) == 1
+        assert isinstance(result.content[0], TextContent)
+        assert result.content[0].text == "hello"
+        # No output schema on this tool, so structuredContent is None
+        assert result.structuredContent is None
+        assert result.isError is False
+
+    async def test_call_tool_without_structured_output_scalar(self, tool_manager: ToolManager):
+        """Test that a scalar return with no serialisable output schema yields Iterable[ContentBlock].
+
+        ``-> object`` has no JSON schema, so FuncMetadata.output_schema stays None.
+        convert_result serialises the value with pydantic_core.to_json and wraps it in
+        a single TextContent. _call() returns the raw iterable without a CallToolResult.
+        """
+
+        def no_schema_tool(n: int) -> object:
+            """Returns object, which has no JSON schema — output_schema stays None."""
+            return n
+
+        tool_manager.add(no_schema_tool)
+
+        result = await tool_manager.call("no_schema_tool", {"n": 42})
+        assert not isinstance(result, CallToolResult)
+        assert isinstance(result, Iterable)
+        content = list(result)  # type: ignore[arg-type]
+        assert all(isinstance(item, ContentBlock) for item in content)
+        assert len(content) == 1
+        assert isinstance(content[0], TextContent)
+        assert content[0].text == "42"
+
+    async def test_call_tool_without_structured_output_string(self, tool_manager: ToolManager):
+        """Test that a string return value with no output schema yields a single TextContent.
+
+        When _convert_to_content receives a str it wraps it directly in TextContent
+        without JSON-encoding, so the text is the raw string.
+        """
+
+        def string_tool(msg: str) -> object:
+            """Passes a string through the unstructured path."""
+            return msg
+
+        tool_manager.add(string_tool)
+
+        result = await tool_manager.call("string_tool", {"msg": "hello world"})
+        assert not isinstance(result, CallToolResult)
+        assert isinstance(result, Iterable)
+        content = list(result)  # type: ignore[arg-type]
+        assert all(isinstance(item, ContentBlock) for item in content)
+        assert len(content) == 1
+        assert isinstance(content[0], TextContent)
+        assert content[0].text == "hello world"
+
+    async def test_call_tool_without_structured_output_multiple_items(self, tool_manager: ToolManager):
+        """Test that returning a list produces one ContentBlock per list element.
+
+        _convert_to_content recurses into list/tuple values, serialising each element
+        individually. A list of N values produces N TextContent blocks.
+        """
+
+        def multi_item_tool() -> object:
+            """Returns a list — each element becomes a separate TextContent."""
+            return [1, 2, 3]
+
+        tool_manager.add(multi_item_tool)
+
+        result = await tool_manager.call("multi_item_tool", {})
+        assert not isinstance(result, CallToolResult)
+        assert isinstance(result, Iterable)
+        content = list(result)  # type: ignore[arg-type]
+        assert all(isinstance(item, ContentBlock) for item in content)
+        assert len(content) == 3
+        assert [item.text for item in content] == ["1", "2", "3"]  # type: ignore[union-attr]
+
+    async def test_call_tool_without_structured_output_content_block(self, tool_manager: ToolManager):
+        """Test that returning a ContentBlock directly is passed through as-is.
+
+        _convert_to_content wraps a ContentBlock in a single-element list without any
+        further serialisation.
+        """
+
+        def content_block_tool(text: str) -> object:
+            """Constructs and returns a TextContent directly."""
+            return TextContent(type="text", text=f"direct: {text}")
+
+        tool_manager.add(content_block_tool)
+
+        result = await tool_manager.call("content_block_tool", {"text": "test"})
+        assert not isinstance(result, CallToolResult)
+        assert isinstance(result, Iterable)
+        content = list(result)  # type: ignore[arg-type]
+        assert all(isinstance(item, ContentBlock) for item in content)
+        assert len(content) == 1
+        assert isinstance(content[0], TextContent)
+        assert content[0].text == "direct: test"
+
+    async def test_call_async_tool_without_structured_output(self, tool_manager: ToolManager):
+        """Test that the unstructured path works correctly for async handlers."""
+
+        async def async_no_schema_tool(value: str) -> object:
+            """Async handler that returns through the unstructured path."""
+            await anyio.sleep(0)
+            return value
+
+        tool_manager.add(async_no_schema_tool)
+
+        result = await tool_manager.call("async_no_schema_tool", {"value": "async result"})
+        assert not isinstance(result, CallToolResult)
+        assert isinstance(result, Iterable)
+        content = list(result)  # type: ignore[arg-type]
+        assert all(isinstance(item, ContentBlock) for item in content)
+        assert len(content) == 1
+        assert isinstance(content[0], TextContent)
+        assert content[0].text == "async result"
 
     async def test_call_tool_exception_with_cause(self, tool_manager: ToolManager):
         """Test that exception chaining is preserved."""
@@ -604,13 +768,10 @@ class TestToolManager:
 
         # Verify the tool can be called without arguments
         result = await tool_manager.call("no_args_tool", {})
-        # Result is a tuple of (content_list, structured_output)
-        assert len(result) == 2
-        content_list = result[0]
-        assert isinstance(content_list, list)
-        assert len(content_list) == 1
-        assert isinstance(content_list[0], types.TextContent)
-        assert content_list[0].text == "42"
+        assert isinstance(result, CallToolResult)
+        assert len(result.content) == 1
+        assert isinstance(result.content[0], TextContent)
+        assert result.content[0].text == "42"
 
     def test_tool_options_typed_dict(self):
         """Test ToolDefinition TypedDict structure."""
@@ -618,13 +779,13 @@ class TestToolManager:
         options: ToolDefinition = {
             "name": "test_name",
             "description": "test_description",
-            "annotations": types.ToolAnnotations(title="test"),
+            "annotations": ToolAnnotations(title="test"),
             "meta": {"version": "1.0"},
         }
 
         assert options["name"] == "test_name"
         assert options["description"] == "test_description"
-        assert options["annotations"] == types.ToolAnnotations(title="test")
+        assert options["annotations"] == ToolAnnotations(title="test")
         assert options["meta"] == {"version": "1.0"}
 
     def test_integration_with_mcp_func(self, tool_manager: ToolManager):
@@ -677,11 +838,15 @@ class TestToolManager:
         assert tools[0] == added_tool
 
         # Call tool
-        result: Any = await tool_manager.call("calculator", {"operation": "add", "a": 10.5, "b": 5.2})
-        assert result[1]["result"] == 15.7
+        result = await tool_manager.call("calculator", {"operation": "add", "a": 10.5, "b": 5.2})
+        assert isinstance(result, CallToolResult)
+        assert result.structuredContent is not None
+        assert result.structuredContent["result"] == 15.7
 
         result = await tool_manager.call("calculator", {"operation": "multiply", "a": 3.0, "b": 4.0})
-        assert result[1]["result"] == 12.0
+        assert isinstance(result, CallToolResult)
+        assert result.structuredContent is not None
+        assert result.structuredContent["result"] == 12.0
 
         # Remove tool
         removed_tool = tool_manager.remove("calculator")
@@ -777,14 +942,10 @@ class TestToolManagerAdvancedFeatures:
 
         # Valid call
         result = await tool_manager.call("typed_tool", {"count": 5, "message": "test"})
-        # Result is a tuple of (content_list, structured_output)
-        assert len(result) == 2
-        content_list = result[0]
-
-        assert isinstance(content_list, list)
-        assert len(content_list) > 0
-        assert isinstance(content_list[0], types.TextContent)
-        assert "count: 5" in str(content_list[0].text)
+        assert isinstance(result, CallToolResult)
+        assert len(result.content) > 0
+        assert isinstance(result.content[0], TextContent)
+        assert "count: 5" in str(result.content[0].text)
 
         # Invalid type should raise InvalidArgumentsError
         with pytest.raises(InvalidArgumentsError):
@@ -810,7 +971,7 @@ class TestToolManagerAdvancedFeatures:
             """An important tool"""
             return value
 
-        annotations = types.ToolAnnotations(title="Critical Tool")
+        annotations = ToolAnnotations(title="Critical Tool")
         result = tool_manager.add(important_tool, annotations=annotations)
 
         assert result.annotations is not None

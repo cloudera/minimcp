@@ -1,11 +1,11 @@
 import builtins
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from functools import partial
 from typing import Any
 
-import mcp.types as types
-from mcp.server.lowlevel.server import CombinationContent, Server
+from mcp.server.lowlevel.server import Server
+from mcp.types import AnyFunction, CallToolResult, ContentBlock, Tool, ToolAnnotations
 from typing_extensions import TypedDict, Unpack
 
 from minimcp.exceptions import (
@@ -40,7 +40,7 @@ class ToolDefinition(TypedDict, total=False):
     name: str | None
     title: str | None
     description: str | None
-    annotations: types.ToolAnnotations | None
+    annotations: ToolAnnotations | None
     meta: dict[str, Any] | None
 
 
@@ -83,7 +83,7 @@ class ToolManager:
         mcp.tool.add(get_weather, title="Weather Provider")
     """
 
-    _tools: dict[str, tuple[types.Tool, MCPFunc]]
+    _tools: dict[str, tuple[Tool, MCPFunc]]
 
     def __init__(self, core: Server):
         """
@@ -101,11 +101,12 @@ class ToolManager:
         """
         core.list_tools()(self._async_list)
 
-        # Validation done by func_meta in call. Hence passing validate_input=False
-        # TODO: Ensure only one validation is required
+        # Input validation is handled by MCPFunc in _call; output validation is bypassed
+        # by returning CallToolResult directly (SDK skips jsonschema when it sees CallToolResult),
+        # with Pydantic's model_validate in convert_result serving as the sole output validator.
         core.call_tool(validate_input=False)(self._call)
 
-    def __call__(self, **kwargs: Unpack[ToolDefinition]) -> Callable[[types.AnyFunction], types.Tool]:
+    def __call__(self, **kwargs: Unpack[ToolDefinition]) -> Callable[[AnyFunction], Tool]:
         """Decorator to add/register a tool handler at the time of handler function definition.
 
         Tool name and description are automatically inferred from the handler function. You can override
@@ -126,7 +127,7 @@ class ToolManager:
         """
         return partial(self.add, **kwargs)
 
-    def add(self, func: types.AnyFunction, **kwargs: Unpack[ToolDefinition]) -> types.Tool:
+    def add(self, func: AnyFunction, **kwargs: Unpack[ToolDefinition]) -> Tool:
         """To programmatically add/register a tool handler function.
 
         This is useful when the handler function is already defined and you have a function object
@@ -169,7 +170,7 @@ class ToolManager:
         if tool_func.name in self._tools:
             raise PrimitiveError(f"Tool {tool_func.name} already registered")
 
-        tool = types.Tool(
+        tool = Tool(
             name=tool_func.name,
             title=kwargs.get("title", None),
             description=kwargs.get("description", tool_func.doc),
@@ -184,7 +185,7 @@ class ToolManager:
 
         return tool
 
-    def remove(self, name: str) -> types.Tool:
+    def remove(self, name: str) -> Tool:
         """Remove a tool by name.
 
         Args:
@@ -203,7 +204,7 @@ class ToolManager:
         logger.debug("Removing tool %s", name)
         return self._tools.pop(name)[0]
 
-    async def _async_list(self) -> builtins.list[types.Tool]:
+    async def _async_list(self) -> builtins.list[Tool]:
         """Async wrapper for list().
 
         Returns:
@@ -211,7 +212,7 @@ class ToolManager:
         """
         return self.list()
 
-    def list(self) -> builtins.list[types.Tool]:
+    def list(self) -> builtins.list[Tool]:
         """List all registered tools.
 
         Returns:
@@ -219,7 +220,7 @@ class ToolManager:
         """
         return [tool[0] for tool in self._tools.values()]
 
-    async def _call(self, name: str, args: dict[str, Any]) -> CombinationContent:
+    async def _call(self, name: str, args: dict[str, Any]) -> Iterable[ContentBlock] | CallToolResult:
         """Execute a tool by name, as specified in the MCP tools/call protocol.
 
         This method handles the MCP tools/call request, executing the tool handler function with
@@ -245,8 +246,10 @@ class ToolManager:
                 tool's inputSchema. Arguments are validated by MCPFunc.
 
         Returns:
-            CombinationContent containing either unstructured content, structured content, or both,
-            per the MCP protocol.
+            A ``CallToolResult`` when the tool has an output schema (structured content),
+            or an unstructured ``Iterable[ContentBlock]`` otherwise. Returning ``CallToolResult``
+            directly causes the SDK to skip its redundant jsonschema output validation; Pydantic
+            validation inside ``convert_result`` is the sole output validator.
 
         Raises:
             ToolPrimitiveError: If the tool is not found (maps to -32602 Invalid params per spec).
@@ -269,13 +272,20 @@ class ToolManager:
             raise ToolInvalidArgumentsError(str(e)) from e
 
         try:
-            return tool_func.meta.convert_result(result)
+            converted_result = tool_func.meta.convert_result(result)
+            if isinstance(converted_result, tuple):
+                unstructured, structured = converted_result
+                converted_result = CallToolResult(
+                    content=list(unstructured), structuredContent=structured, isError=False
+                )
+
+            return converted_result
         except Exception as e:
             msg = f"Error calling tool {name}: {e}"
             logger.exception(msg)
             raise ToolMCPRuntimeError(msg) from e
 
-    async def call(self, name: str, args: dict[str, Any]) -> CombinationContent:
+    async def call(self, name: str, args: dict[str, Any]) -> Iterable[ContentBlock] | CallToolResult:
         """
         Wrapper for _call so that the tools can be called manually by the user. It converts
         the SpecialToolErrors to the appropriate MiniMCPError.
@@ -290,8 +300,8 @@ class ToolManager:
                 tool's inputSchema. Arguments are validated by MCPFunc.
 
         Returns:
-            CombinationContent containing either unstructured content, structured content, or both,
-            per the MCP protocol.
+            A ``CallToolResult`` when the tool has an output schema (structured content),
+            or an unstructured ``Iterable[ContentBlock]`` otherwise.
 
         Raises:
             PrimitiveError: If the tool is not found.
