@@ -105,6 +105,7 @@ class MCPServerBenchmark(Generic[R]):
         self,
         loads: list[Load],
         servers: list[ServerConfig],
+        reports_dir: str,
         min_sample_per_quartile_bin: int = 10,
         warmup_iterations: int = 2,
     ):
@@ -112,6 +113,7 @@ class MCPServerBenchmark(Generic[R]):
         Args:
             loads: The loads to run the benchmark for.
             servers: The server configurations to benchmark against each other.
+            reports_dir: Directory where result JSON files are written.
             min_sample_per_quartile_bin: The minimum number of samples per quartile bin.
                 Ideally around 10 samples per bin to get a good summary.
             warmup_iterations: Number of iterations to run before timing begins for each
@@ -121,6 +123,7 @@ class MCPServerBenchmark(Generic[R]):
 
         self.loads = loads
         self.servers = servers
+        self._reports_dir = reports_dir
 
         self._min_samples = 4 * min_sample_per_quartile_bin
         self._min_samples_full = 100 * min_sample_per_quartile_bin
@@ -260,9 +263,8 @@ class MCPServerBenchmark(Generic[R]):
     async def run(
         self,
         name: str,
+        description: str,
         scenario: BenchmarkScenario[R],
-        result_file_path: str,
-        description: str = "",
     ) -> None:
         server_names = ", ".join(s.name for s in self.servers)
         print(f"Running benchmark for servers [{server_names}] ", end="", flush=True)
@@ -314,7 +316,6 @@ class MCPServerBenchmark(Generic[R]):
 
         self._write_json(
             results,
-            result_file_path,
             name=name,
             description=description,
             start_timestamp=run_start_time.strftime(TIMESTAMP_FORMAT),
@@ -324,33 +325,29 @@ class MCPServerBenchmark(Generic[R]):
     def _write_json(
         self,
         results: list[RunResult],
-        file_path: str,
         name: str,
         description: str,
         start_timestamp: str,
         duration_seconds: float,
     ) -> None:
-        benchmark_file = Path(sys.argv[0])
-        resolved_name = name or benchmark_file.stem
+        result_file_path = f"{self._reports_dir}/{name}.json"
+        benchmark_py_file = Path(sys.argv[0])
 
         server_names = ", ".join({r.server_name for r in results})
         load_names = ", ".join({r.load_name for r in results})
 
-        summary = (
-            f"The benchmark is run on MCP servers {server_names} with loads {load_names}. "
+        full_description = (
+            f"{description}. The benchmark is run on MCP servers {server_names} with loads {load_names}. "
             f"{len(results)} results are available."
         )
 
-        if description:
-            summary += f"\n{description}"
-
         benchmark_summary = {
-            "name": resolved_name,
-            "description": summary,
+            "name": name,
+            "description": full_description,
             "metadata": {
                 "start_timestamp": start_timestamp,
                 "write_timestamp": datetime.now().strftime(TIMESTAMP_FORMAT),
-                "benchmark_file": benchmark_file.name,
+                "benchmark_py_file": benchmark_py_file.name,
                 "duration_seconds": duration_seconds,
                 "environment": _get_environment_info(),
             },
@@ -399,7 +396,7 @@ class MCPServerBenchmark(Generic[R]):
             "results": [asdict(result) for result in results],
         }
 
-        with open(file_path, "w") as f:
+        with open(result_file_path, "w") as f:
             json.dump(benchmark_summary, f, indent=2)
 
-        print(f"Benchmark summary written to {file_path}")
+        print(f"Benchmark summary written to {result_file_path}")

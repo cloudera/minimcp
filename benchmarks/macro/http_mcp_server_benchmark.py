@@ -58,25 +58,26 @@ def main() -> None:
             ServerConfig("fastmcp", partial(create_client_server, fastmcp_http_server)),
             ServerConfig("minimcp", partial(create_client_server, minimcp_http_server)),
         ],
+        reports_dir=REPORTS_DIR,
     )
 
     anyio.run(
         benchmark.run,
+        "http_mcp_server_sync_benchmark_results",
         "MCP Server with HTTP transport - Benchmark with synchronous tool calls",
         ToolScenario("compute_all_prime_factors"),
-        f"{REPORTS_DIR}/http_mcp_server_sync_benchmark_results.json",
     )
     anyio.run(
         benchmark.run,
+        "http_mcp_server_io_bound_async_benchmark_results",
         "MCP Server with HTTP transport - Benchmark with I/O-bound async tool calls",
         ToolScenario("io_bound_compute_all_prime_factors"),
-        f"{REPORTS_DIR}/http_mcp_server_io_bound_async_benchmark_results.json",
     )
     anyio.run(
         benchmark.run,
+        "http_mcp_server_noop_benchmark_results",
         "MCP Server with HTTP transport - Benchmark with noop tool calls (protocol overhead only)",
         ToolScenario("noop_tool"),
-        f"{REPORTS_DIR}/http_mcp_server_noop_benchmark_results.json",
     )
 
 
