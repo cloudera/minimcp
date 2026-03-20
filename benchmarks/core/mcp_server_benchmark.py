@@ -99,23 +99,19 @@ class BenchmarkScenario(ABC, Generic[R]):
 
 class MCPServerBenchmark(Generic[R]):
     loads: list[Load]
-    name: str
-    description: str
-    results: list[RunResult]
+    servers: list[ServerConfig]
 
     def __init__(
         self,
         loads: list[Load],
-        name: str = "",
-        description: str = "",
+        servers: list[ServerConfig],
         min_sample_per_quartile_bin: int = 10,
         warmup_iterations: int = 2,
     ):
         """
         Args:
             loads: The loads to run the benchmark for.
-            name: The name of the benchmark.
-            description: A string that describes the benchmark.
+            servers: The server configurations to benchmark against each other.
             min_sample_per_quartile_bin: The minimum number of samples per quartile bin.
                 Ideally around 10 samples per bin to get a good summary.
             warmup_iterations: Number of iterations to run before timing begins for each
@@ -124,14 +120,12 @@ class MCPServerBenchmark(Generic[R]):
         """
 
         self.loads = loads
-        self.name = name
-        self.description = description
+        self.servers = servers
 
         self._min_samples = 4 * min_sample_per_quartile_bin
         self._min_samples_full = 100 * min_sample_per_quartile_bin
         self._warmup_iterations = warmup_iterations
 
-        self.results = []
         self._validate_loads()
 
     def _validate_loads(self) -> None:
@@ -265,39 +259,41 @@ class MCPServerBenchmark(Generic[R]):
 
     async def run(
         self,
-        servers: list[ServerConfig],
+        name: str,
         scenario: BenchmarkScenario[R],
         result_file_path: str,
+        description: str = "",
     ) -> None:
-        server_names = ", ".join(s.name for s in servers)
+        server_names = ", ".join(s.name for s in self.servers)
         print(f"Running benchmark for servers [{server_names}] ", end="", flush=True)
 
         run_start_time = datetime.now()
+        results: list[RunResult] = []
 
         # -- 1. Load
         for load in self.loads:
             # Per-server sample accumulators reset for each load
             accumulated_samples: dict[str, RunServerResult] = {
-                server.name: RunServerResult([], [], [], [], []) for server in servers
+                server.name: RunServerResult([], [], [], [], []) for server in self.servers
             }
 
             # Server runs are interleaved to reduce ordering bias. Server order is reversed
             # half way through the rounds to further reduce ordering bias.
             mid_index = load.rounds // 2
-            reversed_servers = servers[::-1]
+            reversed_servers = self.servers[::-1]
 
             # -- 2. Round
             for round_idx in range(load.rounds):
                 # -- 3. Server
-                for server in servers if round_idx < mid_index else reversed_servers:
+                for server in self.servers if round_idx < mid_index else reversed_servers:
                     result = await self._run_server(server, scenario, load)
                     accumulated_samples[server.name].extend(result)
                     print(".", end="", flush=True)
 
             # Summarize and save results for each server
-            for server in servers:
+            for server in self.servers:
                 s = accumulated_samples[server.name]
-                self.results.append(
+                results.append(
                     RunResult(
                         server_name=server.name,
                         load_name=load.name,
@@ -317,27 +313,40 @@ class MCPServerBenchmark(Generic[R]):
         print(" done")  # -- Run end
 
         self._write_json(
+            results,
             result_file_path,
+            name=name,
+            description=description,
             start_timestamp=run_start_time.strftime(TIMESTAMP_FORMAT),
             duration_seconds=(run_end_time - run_start_time).total_seconds(),
         )
 
-    def _write_json(self, file_path: str, start_timestamp: str, duration_seconds: float) -> None:
+    def _write_json(
+        self,
+        results: list[RunResult],
+        file_path: str,
+        name: str,
+        description: str,
+        start_timestamp: str,
+        duration_seconds: float,
+    ) -> None:
         benchmark_file = Path(sys.argv[0])
-        name = self.name or benchmark_file.stem
+        resolved_name = name or benchmark_file.stem
 
-        server_names = ", ".join({r.server_name for r in self.results})
-        load_names = ", ".join({r.load_name for r in self.results})
+        server_names = ", ".join({r.server_name for r in results})
+        load_names = ", ".join({r.load_name for r in results})
 
-        description = f"The benchmark is run on MCP servers {server_names} with loads {load_names}. \
-            {len(self.results)} results are available."
+        summary = (
+            f"The benchmark is run on MCP servers {server_names} with loads {load_names}. "
+            f"{len(results)} results are available."
+        )
 
-        if self.description:
-            description += f"\n{self.description}"
+        if description:
+            summary += f"\n{description}"
 
         benchmark_summary = {
-            "name": name,
-            "description": description,
+            "name": resolved_name,
+            "description": summary,
             "metadata": {
                 "start_timestamp": start_timestamp,
                 "write_timestamp": datetime.now().strftime(TIMESTAMP_FORMAT),
@@ -387,7 +396,7 @@ class MCPServerBenchmark(Generic[R]):
                     ),
                 },
             },
-            "results": [asdict(result) for result in self.results],
+            "results": [asdict(result) for result in results],
         }
 
         with open(file_path, "w") as f:

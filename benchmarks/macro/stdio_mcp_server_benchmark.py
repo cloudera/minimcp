@@ -12,11 +12,10 @@ from types import ModuleType
 import anyio
 import psutil
 from mcp import ClientSession, StdioServerParameters, stdio_client
-from mcp.types import CallToolResult
 
 from benchmarks.configs import LOADS, REPORTS_DIR
 from benchmarks.core.cpu_affinity import CPU_SPLIT_FRACTION, set_cpu_affinity
-from benchmarks.core.mcp_server_benchmark import BenchmarkScenario, MCPServerBenchmark, ServerConfig
+from benchmarks.core.mcp_server_benchmark import MCPServerBenchmark, ServerConfig
 from benchmarks.macro.scenarios import ToolScenario
 from tests.integration.helpers.process import find_process
 
@@ -52,40 +51,31 @@ async def create_client_server(module: ModuleType) -> AsyncGenerator[tuple[Clien
             yield session, server_process
 
 
-async def stdio_benchmark(
-    name: str,
-    scenario: BenchmarkScenario[CallToolResult],
-    result_file_path: str,
-) -> None:
-    benchmark = MCPServerBenchmark[CallToolResult](LOADS, name)
-
-    await benchmark.run(
-        [
-            ServerConfig("fastmcp", partial(create_client_server, fastmcp_stdio_server)),
-            ServerConfig("minimcp", partial(create_client_server, minimcp_stdio_server)),
-        ],
-        scenario,
-        result_file_path,
-    )
-
-
 def main() -> None:
     set_cpu_affinity(psutil.Process(), 0.0, CPU_SPLIT_FRACTION)
 
+    benchmark = MCPServerBenchmark(
+        LOADS,
+        servers=[
+            ServerConfig("fastmcp", partial(create_client_server, fastmcp_stdio_server)),
+            ServerConfig("minimcp", partial(create_client_server, minimcp_stdio_server)),
+        ],
+    )
+
     anyio.run(
-        stdio_benchmark,
+        benchmark.run,
         "MCP Server with stdio transport - Benchmark with synchronous tool calls",
         ToolScenario("compute_all_prime_factors"),
         f"{REPORTS_DIR}/stdio_mcp_server_sync_benchmark_results.json",
     )
     anyio.run(
-        stdio_benchmark,
+        benchmark.run,
         "MCP Server with stdio transport - Benchmark with I/O-bound async tool calls",
         ToolScenario("io_bound_compute_all_prime_factors"),
         f"{REPORTS_DIR}/stdio_mcp_server_io_bound_async_benchmark_results.json",
     )
     anyio.run(
-        stdio_benchmark,
+        benchmark.run,
         "MCP Server with stdio transport - Benchmark with noop tool calls (protocol overhead only)",
         ToolScenario("noop_tool"),
         f"{REPORTS_DIR}/stdio_mcp_server_noop_benchmark_results.json",
