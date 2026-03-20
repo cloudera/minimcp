@@ -261,10 +261,15 @@ class MCPServerBenchmark(Generic[R]):
                 server.name: RunServerResult([], [], [], [], []) for server in servers
             }
 
+            # Server runs are interleaved to reduce ordering bias. Server order is reversed
+            # half way through the rounds to further reduce ordering bias.
+            mid_index = load.rounds // 2
+            reversed_servers = servers[::-1]
+
             # -- 2. Round
-            for _round_idx in range(load.rounds):
-                # -- 3. Server (interleaved per round to reduce ordering bias)
-                for server in servers:
+            for round_idx in range(load.rounds):
+                # -- 3. Server
+                for server in (servers if round_idx < mid_index else reversed_servers):
                     result = await self._run_server(server, scenario, load)
                     accumulated_samples[server.name].extend(result)
                     print(".", end="", flush=True)
