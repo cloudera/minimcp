@@ -91,7 +91,7 @@ class TestResponder:
         assert responder._request == request_without_progress_token
         assert responder._send is mock_send
         assert responder._time_limiter is mock_time_limiter
-        assert responder._progress_token is None
+        assert responder._get_progress_token() is None
 
     async def test_get_progress_token_valid_request(self):
         """Test extracting progress token from valid request."""
@@ -108,21 +108,21 @@ class TestResponder:
 
     async def test_get_progress_token_no_token(self, responder_no_token: Responder):
         """Test extracting progress token when none exists."""
-        assert responder_no_token._progress_token is None
+        assert responder_no_token._get_progress_token() is None
 
     async def test_get_progress_token_invalid_json(self, mock_send: AsyncMock, mock_time_limiter: Mock):
         """Test progress token extraction with invalid JSON."""
         invalid_json = '{"invalid": json}'
         responder = Responder(invalid_json, mock_send, mock_time_limiter)
 
-        assert responder._progress_token is None
+        assert responder._get_progress_token() is None
 
     async def test_get_progress_token_invalid_structure(self, mock_send: AsyncMock, mock_time_limiter: Mock):
         """Test progress token extraction with invalid message structure."""
         invalid_structure = json.dumps({"not": "a valid request"})
         responder = Responder(invalid_structure, mock_send, mock_time_limiter)
 
-        assert responder._progress_token is None
+        assert responder._get_progress_token() is None
 
     async def test_get_progress_token_missing_meta(self, mock_send: AsyncMock, mock_time_limiter: Mock):
         """Test progress token extraction when meta is missing."""
@@ -131,7 +131,7 @@ class TestResponder:
         )
         responder = Responder(no_meta, mock_send, mock_time_limiter)
 
-        assert responder._progress_token is None
+        assert responder._get_progress_token() is None
 
     async def test_get_progress_token_missing_progress_token(self, mock_send: AsyncMock, mock_time_limiter: Mock):
         """Test progress token extraction when progressToken is missing from meta."""
@@ -145,7 +145,7 @@ class TestResponder:
         )
         responder = Responder(no_progress_token, mock_send, mock_time_limiter)
 
-        assert responder._progress_token is None
+        assert responder._get_progress_token() is None
 
     async def test_report_progress_with_token(self, mock_send: AsyncMock, mock_time_limiter: Mock):
         """Test reporting progress when progress token is available."""
@@ -413,7 +413,8 @@ class TestResponder:
 
         responder = Responder(nested_request, mock_send, mock_time_limiter)
         # Should handle gracefully and return None
-        assert responder._progress_token is None or isinstance(responder._progress_token, dict)
+        result = responder._get_progress_token()
+        assert result is None or isinstance(result, dict)
 
     async def test_progress_token_extraction_with_null_values(self, mock_send: AsyncMock, mock_time_limiter: Mock):
         """Test progress token extraction with null values."""
@@ -427,7 +428,7 @@ class TestResponder:
         )
 
         responder = Responder(null_token_request, mock_send, mock_time_limiter)
-        assert responder._progress_token is None
+        assert responder._get_progress_token() is None
 
     async def test_concurrent_progress_reports(self, responder: Responder, mock_time_limiter: Mock):
         """Test concurrent progress reports."""
@@ -509,7 +510,7 @@ class TestResponder:
 
         responder = Responder(malformed_request, mock_send, mock_time_limiter)
 
-        assert responder._progress_token is None
+        assert responder._get_progress_token() is None
 
 
 class TestResponderIntegration:

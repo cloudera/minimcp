@@ -1,6 +1,7 @@
 import json
 import logging
 from operator import attrgetter
+from typing import Final
 
 import mcp.types as types
 
@@ -9,6 +10,8 @@ from minimcp.types import Message, Send
 from minimcp.utils import json_rpc
 
 logger = logging.getLogger(__name__)
+
+_UNSET: Final[str] = "UNSET"
 
 
 class Responder:
@@ -24,10 +27,9 @@ class Responder:
     """
 
     _request: Message
-    _progress_token: types.ProgressToken | None
-    _time_limiter: TimeLimiter
-
     _send: Send
+    _time_limiter: TimeLimiter
+    _progress_token: types.ProgressToken | None
 
     def __init__(self, request: Message, send: Send, time_limiter: TimeLimiter):
         """
@@ -37,18 +39,27 @@ class Responder:
             time_limiter: The TimeLimiter for managing handler idle timeout.
         """
         self._request = request
-        self._progress_token = self._get_progress_token(request)
-
         self._send = send
         self._time_limiter = time_limiter
+        self._progress_token = _UNSET
 
-    def _get_progress_token(self, request: Message) -> types.ProgressToken | None:
-        """Extract the progress token from the request metadata, if present."""
-        try:
-            client_request = types.ClientRequest.model_validate(json.loads(request))
-            return attrgetter("params.meta.progressToken")(client_request.root)
-        except Exception:
-            return None
+    def _get_progress_token(self) -> types.ProgressToken | None:
+        """Extract and cache the progress token from the request metadata.
+
+        Parsing is deferred to the first call so that handlers that never invoke
+        ``report_progress`` pay no deserialization cost.
+
+        Returns:
+            The progress token provided by the client in the request metadata,
+            or None if no token was supplied or the request could not be parsed.
+        """
+        if self._progress_token is _UNSET:
+            try:
+                client_request = types.ClientRequest.model_validate(json.loads(self._request))
+                self._progress_token = attrgetter("params.meta.progressToken")(client_request.root)
+            except Exception:
+                self._progress_token = None
+        return self._progress_token
 
     async def report_progress(
         self, progress: float, total: float | None = None, message: str | None = None
@@ -73,7 +84,9 @@ class Responder:
             Returns None if no progress token was provided in the request.
         """
 
-        if self._progress_token is None:
+        progress_token = self._get_progress_token()
+
+        if progress_token is None:
             logger.warning("report_progress failed: Progress token is not available.")
             return None
 
@@ -81,7 +94,7 @@ class Responder:
             types.ProgressNotification(
                 method="notifications/progress",  # TODO: Remove once python-sdk/pull/1292 is merged.
                 params=types.ProgressNotificationParams(
-                    progressToken=self._progress_token,
+                    progressToken=progress_token,
                     progress=progress,
                     total=total,
                     message=message,
@@ -91,7 +104,7 @@ class Responder:
 
         await self.send_notification(notification)
 
-        return self._progress_token
+        return progress_token
 
     async def send_notification(self, notification: types.ServerNotification) -> None:
         """Send a notification to the client.
