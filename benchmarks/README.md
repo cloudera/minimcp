@@ -19,6 +19,8 @@ uv run python -m benchmarks.macro.http_mcp_server_benchmark
 uv run python -m benchmarks.macro.streamable_http_mcp_server_benchmark
 ```
 
+> **FastMCP Version:** The benchmarks compare MiniMCP against the [FastMCP](https://pypi.org/project/fastmcp/) package. The version in use is pinned in the `dev` dependency group in `pyproject.toml`. To temporarily use a different version, run `uv pip install fastmcp==<version>` before running the scripts.
+
 ### System Preparation - Best practice in Ubuntu
 
 The following steps can help you get consistent benchmark results. They are specifically for Ubuntu, but similar steps may exist for other operating systems.
