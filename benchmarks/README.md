@@ -62,7 +62,7 @@ The benchmark uses four load profiles to test performance under different concur
 | Medium     | 100         | 15         | 40     | 60,000         |
 | Heavy      | 300         | 15         | 40     | 180,000        |
 
-## Analyze Results
+### Analyze Results
 
 The `analyze_results.py` script provides a visual comparison of benchmark results between MiniMCP and FastMCP. It displays response time comparisons across all load profiles with visual bar charts, performance improvements as percentages, memory usage comparisons, key findings, and metadata.
 
@@ -72,15 +72,57 @@ You can run it for each result JSON file with:
 # Stdio
 uv run python benchmarks/analyze_results.py benchmarks/reports/stdio_mcp_server_sync_benchmark_results.json
 
-uv run python benchmarks/analyze_results.py benchmarks/reports/stdio_mcp_server_async_benchmark_results.json
+uv run python benchmarks/analyze_results.py benchmarks/reports/stdio_mcp_server_io_bound_async_benchmark_results.json
+
+uv run python benchmarks/analyze_results.py benchmarks/reports/stdio_mcp_server_noop_benchmark_results.json
 
 # HTTP
 uv run python benchmarks/analyze_results.py benchmarks/reports/http_mcp_server_sync_benchmark_results.json
 
-uv run python benchmarks/analyze_results.py benchmarks/reports/http_mcp_server_async_benchmark_results.json
+uv run python benchmarks/analyze_results.py benchmarks/reports/http_mcp_server_io_bound_async_benchmark_results.json
+
+uv run python benchmarks/analyze_results.py benchmarks/reports/http_mcp_server_noop_benchmark_results.json
 
 # Streamable HTTP
 uv run python benchmarks/analyze_results.py benchmarks/reports/streamable_http_mcp_server_sync_benchmark_results.json
 
-uv run python benchmarks/analyze_results.py benchmarks/reports/streamable_http_mcp_server_async_benchmark_results.json
+uv run python benchmarks/analyze_results.py benchmarks/reports/streamable_http_mcp_server_io_bound_async_benchmark_results.json
+
+uv run python benchmarks/analyze_results.py benchmarks/reports/streamable_http_mcp_server_noop_benchmark_results.json
+```
+
+## Profiling
+
+The `profiles/` directory contains [viztracer](https://viztracer.readthedocs.io/) profiling scripts for investigating hot paths at the framework level. These scripts call transport dispatch functions directly (no network), so they isolate pure framework overhead.
+
+### Available profiles
+
+| Script | What it profiles |
+|---|---|
+| `profiles/profile_minimcp.py` | All four execution layers (raw handle → raw+send → HTTP → StreamableHTTP) across I/O-bound and noop workloads — the primary profiling entry point |
+| `profiles/profile_streamable_http.py` | Focused comparison of StreamableHTTP vs plain HTTP under concurrent I/O-bound and noop tool calls |
+
+```bash
+# Full layered profile — raw handle, raw+send, HTTP, and StreamableHTTP (6 traces)
+uv run python -m benchmarks.profiles.profile_minimcp
+
+# Focused StreamableHTTP vs HTTP comparison (3 traces)
+uv run python -m benchmarks.profiles.profile_streamable_http
+```
+
+Output trace files are written to `benchmarks/profiles/traces/` (git-ignored). Open any trace with:
+
+```bash
+# profile_minimcp.py outputs
+uv run viztracer --open benchmarks/profiles/traces/profile_raw_io_bound.json
+uv run viztracer --open benchmarks/profiles/traces/profile_raw_send_io_bound.json
+uv run viztracer --open benchmarks/profiles/traces/profile_http_io_bound.json
+uv run viztracer --open benchmarks/profiles/traces/profile_streamable_http_io_bound.json
+uv run viztracer --open benchmarks/profiles/traces/profile_raw_noop.json
+uv run viztracer --open benchmarks/profiles/traces/profile_streamable_http_noop.json
+
+# profile_streamable_http.py outputs
+uv run viztracer --open benchmarks/profiles/traces/profile_streamable_http_io_bound.json
+uv run viztracer --open benchmarks/profiles/traces/profile_http_io_bound.json
+uv run viztracer --open benchmarks/profiles/traces/profile_streamable_http_noop.json
 ```
