@@ -7,7 +7,7 @@ import anyio
 from benchmarks.core.sample_tools import compute_all_prime_factors, io_bound_compute_all_prime_factors, noop_tool
 from minimcp import MiniMCP, StdioTransport
 
-mcp = MiniMCP[None](name="MinimCP", max_concurrency=1000)  # Not enforcing concurrency controls for this benchmark
+mcp = MiniMCP[None](name="MinimCP", max_concurrency=-1, idle_timeout=-1)
 
 mcp.tool.add(compute_all_prime_factors)
 mcp.tool.add(io_bound_compute_all_prime_factors)
