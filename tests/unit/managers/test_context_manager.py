@@ -4,9 +4,9 @@ import mcp.types as types
 import pytest
 
 from minimcp.exceptions import ContextError
-from minimcp.limiter import TimeLimiter
 from minimcp.managers.context_manager import Context, ContextManager
 from minimcp.responder import Responder
+from minimcp.time_limiter import TimeLimiter
 
 pytestmark = pytest.mark.anyio
 

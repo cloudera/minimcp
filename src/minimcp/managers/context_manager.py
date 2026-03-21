@@ -7,8 +7,8 @@ from typing import Generic, TypeVar
 from mcp.types import JSONRPCMessage
 
 from minimcp.exceptions import ContextError
-from minimcp.limiter import TimeLimiter
 from minimcp.responder import Responder
+from minimcp.time_limiter import TimeLimiter
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,7 @@ class Context(Generic[ScopeT]):
         message: The parsed JSON-RPC request message being handled.
         time_limiter: TimeLimiter for managing handler idle timeout. Call
             time_limiter.reset() to extend the deadline during active processing.
+            None when idle timeout is disabled (idle_timeout=-1 on MiniMCP).
         scope: Optional scope object passed to mcp.handle(). Use this to pass
             authentication details, user info, session data, or database handles
             to your handlers.
@@ -38,7 +39,7 @@ class Context(Generic[ScopeT]):
     """
 
     message: JSONRPCMessage
-    time_limiter: TimeLimiter
+    time_limiter: TimeLimiter | None
     scope: ScopeT | None = None
     responder: Responder | None = None
 
@@ -55,8 +56,8 @@ class ContextManager(Generic[ScopeT]):
     You can retrieve the current context using mcp.context.get(). If called
     outside of a handler, this method raises a ContextError.
 
-    For common use cases, helper methods (get_scope, get_responder) are provided
-    to avoid null checks when accessing optional context attributes.
+    For common use cases, helper methods (get_scope, get_responder, get_time_limiter)
+    are provided to avoid null checks when accessing optional context attributes.
     """
 
     _ctx: ContextVar[Context[ScopeT]] = ContextVar("ctx")
@@ -116,6 +117,25 @@ class ContextManager(Generic[ScopeT]):
         if scope is None:
             raise ContextError("ContextError: Scope is not available in current context")
         return scope
+
+    def get_time_limiter(self) -> TimeLimiter:
+        """Get the time limiter from the current context.
+
+        This helper method retrieves the time limiter and raises an error if it's not
+        available, avoiding the need for null checks in your code. The time limiter
+        is only available when idle timeout is enabled (idle_timeout != -1 on MiniMCP).
+
+        Returns:
+            The TimeLimiter for resetting the idle deadline during active processing.
+
+        Raises:
+            ContextError: If called outside of an active handler context or if
+                idle timeout is disabled (idle_timeout=-1 on MiniMCP).
+        """
+        time_limiter = self.get().time_limiter
+        if time_limiter is None:
+            raise ContextError("ContextError: TimeLimiter is not available in current context")
+        return time_limiter
 
     def get_responder(self) -> Responder:
         """Get the responder from the current context.

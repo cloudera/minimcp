@@ -5,8 +5,8 @@ import anyio
 import mcp.types as types
 import pytest
 
-from minimcp.limiter import TimeLimiter
 from minimcp.responder import Responder
+from minimcp.time_limiter import TimeLimiter
 from minimcp.types import Message
 
 pytestmark = pytest.mark.anyio

@@ -17,7 +17,7 @@ tests/
 │   ├── utils/                     # JSON-RPC, function wrappers
 │   ├── test_minimcp.py            # Core MiniMCP class
 │   ├── test_responder.py          # Response building
-│   └── test_limiter.py            # Rate limiting
+│   └── test_time_limiter.py       # Idle timeout enforcement
 │
 └── integration/                   # End-to-end tests
     ├── test_http_server.py
@@ -32,7 +32,7 @@ tests/
 - **MiniMCP Core** (50 tests): Server initialization, message handling, lifecycle management, protocol negotiation
 - **JSON-RPC Protocol** (41 tests): JSON-RPC 2.0 compliance, error codes, message validation
 - **Responder** (35 tests): Response building, error handling, progress notifications
-- **Rate Limiting** (39 tests): Timeout enforcement, concurrent request limiting
+- **Idle Timeout** (15 tests): Deadline enforcement, reset behaviour, cancel scope integration
 
 ### Managers
 

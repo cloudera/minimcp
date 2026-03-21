@@ -1,10 +1,12 @@
 import logging
 import uuid
+from contextlib import AbstractAsyncContextManager, nullcontext
 from typing import Any, Generic
 
 import anyio
 import mcp.shared.version as version
 import mcp.types as types
+from anyio import CapacityLimiter
 from mcp.server.lowlevel.server import NotificationOptions, Server
 from pydantic import ValidationError
 
@@ -26,12 +28,12 @@ from minimcp.exceptions import (
     ToolPrimitiveError,
     UnsupportedMessageTypeError,
 )
-from minimcp.limiter import Limiter
 from minimcp.managers.context_manager import Context, ContextManager, ScopeT
 from minimcp.managers.prompt_manager import PromptManager
 from minimcp.managers.resource_manager import ResourceManager
 from minimcp.managers.tool_manager import ToolManager
 from minimcp.responder import Responder
+from minimcp.time_limiter import TimeLimiter
 from minimcp.types import RESOURCE_NOT_FOUND, Message, NoMessage, Send
 
 logger = logging.getLogger(__name__)
@@ -105,7 +107,8 @@ class MiniMCP(Generic[ScopeT]):
 
     _core: Server
     _notification_options: NotificationOptions | None = None
-    _limiter: Limiter
+    _capacity_limiter: AbstractAsyncContextManager[Any]
+    _idle_timeout: int
     _include_stack_trace: bool
 
     tool: ToolManager
@@ -131,12 +134,14 @@ class MiniMCP(Generic[ScopeT]):
             instructions: The instructions for the MCP server.
 
             idle_timeout: Time in seconds after which a message handler will be considered idle and
-                timed out. Default is 30 seconds.
+                timed out. Default is 30 seconds. Pass -1 to disable idle timeout entirely.
             max_concurrency: The maximum number of message handlers that could be run at the same time,
                 beyond which the handle() calls will be blocked. Default is 100.
+                Pass -1 to disable concurrency limiting entirely.
             include_stack_trace: Whether to include the stack trace in the error response. Default is False.
         """
-        self._limiter = Limiter(idle_timeout, max_concurrency)
+        self._capacity_limiter = nullcontext() if max_concurrency == -1 else CapacityLimiter(max_concurrency)
+        self._idle_timeout = idle_timeout
         self._include_stack_trace = include_stack_trace
 
         # TODO: Add support for server-to-client notifications
@@ -202,11 +207,15 @@ class MiniMCP(Generic[ScopeT]):
         try:
             rpc_msg = self._parse_message(message)
 
-            async with self._limiter() as time_limiter:
-                responder = Responder(message, send, time_limiter) if send else None
-                context = Context[ScopeT](message=rpc_msg, time_limiter=time_limiter, scope=scope, responder=responder)
-                with self.context.active(context):
-                    return await self._handle_rpc_msg(rpc_msg)
+            async with self._capacity_limiter:
+                time_limiter_ctx = TimeLimiter(self._idle_timeout) if self._idle_timeout != -1 else nullcontext()
+                with time_limiter_ctx as time_limiter:
+                    responder = Responder(message, send, time_limiter) if send else None
+                    context = Context[ScopeT](
+                        message=rpc_msg, time_limiter=time_limiter, scope=scope, responder=responder
+                    )
+                    with self.context.active(context):
+                        return await self._handle_rpc_msg(rpc_msg)
 
         # --- Centralized MCP error handling - Handles all internal MCP errors ---
         # - Exception raised - InvalidMessageFormatError from ParseError or InvalidJSONRPCMessageError

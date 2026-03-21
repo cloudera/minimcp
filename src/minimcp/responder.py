@@ -5,7 +5,7 @@ from typing import Final
 
 import mcp.types as types
 
-from minimcp.limiter import TimeLimiter
+from minimcp.time_limiter import TimeLimiter
 from minimcp.types import Message, Send
 from minimcp.utils import json_rpc
 
@@ -28,15 +28,16 @@ class Responder:
 
     _request: Message
     _send: Send
-    _time_limiter: TimeLimiter
+    _time_limiter: TimeLimiter | None
     _progress_token: types.ProgressToken | None
 
-    def __init__(self, request: Message, send: Send, time_limiter: TimeLimiter):
+    def __init__(self, request: Message, send: Send, time_limiter: TimeLimiter | None):
         """
         Args:
             request: The incoming message that triggered the handler.
             send: The send function for transmitting messages to the client.
             time_limiter: The TimeLimiter for managing handler idle timeout.
+                None when idle timeout is disabled (idle_timeout=-1 on MiniMCP).
         """
         self._request = request
         self._send = send
@@ -123,8 +124,9 @@ class Responder:
         logger.debug("Sending notification: %s", notification)
         message = json_rpc.build_notification_message(notification)
 
-        # Reset time limiter
-        self._time_limiter.reset()
+        # Reset time limiter if enabled
+        if self._time_limiter is not None:
+            self._time_limiter.reset()
 
         # Just call the sender with the message and let transport layer handle the rest.
         await self._send(message)

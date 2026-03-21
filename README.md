@@ -328,16 +328,17 @@ The Context Manager provides access to request metadata (such as the message, sc
 ```python
 # Context structure
 Context(Generic[ScopeT]):
-    message: JSONRPCMessage      # The parsed request message
-    time_limiter: TimeLimiter    # time_limiter.reset() resets the handler idle timeout
-    scope: ScopeT | None         # Scope object passed when calling handle()
-    responder: Responder | None  # Allows sending notifications back to the client
+    message: JSONRPCMessage           # The parsed request message
+    time_limiter: TimeLimiter | None  # None when idle_timeout=-1
+    scope: ScopeT | None              # Scope object passed when calling handle()
+    responder: Responder | None       # Allows sending notifications back to the client
 
 # Accessing context
 mcp.context.get() -> Context[ScopeT]
 
 # Helper methods for easy access (raise ContextError if not available)
 mcp.context.get_scope() -> ScopeT
+mcp.context.get_time_limiter() -> TimeLimiter  # raises if idle_timeout=-1
 mcp.context.get_responder() -> Responder
 ```
 
@@ -347,11 +348,9 @@ mcp.context.get_responder() -> Responder
 @mcp.tool()
 async def process_large_dataset(dataset_id: str) -> str:
     """Process a large dataset with periodic timeout resets"""
-    ctx = mcp.context.get()
-
     for i in range(1000):
         # Reset timeout to prevent idle timeout during active processing
-        ctx.time_limiter.reset()
+        mcp.context.get_time_limiter().reset()
         await process_item(i)
 
     return "Processing complete"
@@ -570,10 +569,9 @@ A: The default idle timeout is 30 seconds. For long-running operations, reset th
 ```python
 @mcp.tool()
 async def long_operation():
-    ctx = mcp.context.get()
     for i in range(100):
         # Reset timeout to prevent idle timeout
-        ctx.time_limiter.reset()
+        mcp.context.get_time_limiter().reset()
         await process_item(i)
 ```
 
@@ -581,6 +579,7 @@ You can also configure the timeout when creating the MiniMCP instance:
 
 ```python
 mcp = MiniMCP(name="MyServer", idle_timeout=60)  # 60 seconds
+mcp = MiniMCP(name="MyServer", idle_timeout=-1)   # disable idle timeout entirely
 ```
 
 **Q: How do I adjust the concurrency limit?**
@@ -589,6 +588,7 @@ A: By default, MiniMCP allows 100 concurrent handlers. You can adjust this with 
 
 ```python
 mcp = MiniMCP(name="MyServer", max_concurrency=200)
+mcp = MiniMCP(name="MyServer", max_concurrency=-1)  # disable concurrency limiting entirely
 ```
 
 **Q: How do I access the scope in nested functions?**
