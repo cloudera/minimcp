@@ -14,7 +14,7 @@
 At the end of each benchmark round the following `ExceptionGroup` is raised from
 inside `mcp.client.streamable_http.streamable_http_client`:
 
-```
+```text
 exceptiongroup.ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
   └─ httpx.ReadError
        └─ httpcore.ReadError          ← TCP read failed at response-header level
@@ -34,7 +34,7 @@ background tasks, including a dispatcher that converts writes on the MCP
 
 The teardown sequence for a benchmark round is:
 
-```
+```text
 ClientSession.__aexit__()           ← innermost context; sends a final
                                       MCP notification over the write channel
 streamable_http_client.__aexit__()  ← cancels all background tasks immediately

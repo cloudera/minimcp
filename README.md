@@ -222,23 +222,25 @@ async def handler(request: Request):
     return await transport.starlette_dispatch(request, scope)
 ```
 
-## Benchmark - MiniMCP vs FastMCP
+## Benchmark - MiniMCP vs FastMCP (standalone)
+
+Benchmarked against the standalone [`fastmcp`](https://github.com/jlowin/fastmcp) package (v3.1.1, by Jeremiah Lowin).
 
 In our benchmarks, MiniMCP consistently outperforms FastMCP across all transport types and workloads:
 
-- **20-67% faster response times** under load
-- **10-173% higher throughput** (especially HTTP transports under heavy load)
-- **17-28% lower max memory usage** under heavy load
-- **Superior scalability** with increasing concurrency
+- **28–64% faster response times** across all load levels
+- **38–126% higher throughput** (STDIO transport; advantage persists under heavy load)
+- **44–66% lower peak memory usage** — FastMCP grows with concurrency, MiniMCP stays flat
+- **Wins all 36 test scenarios** (3 transports × 3 workloads × 4 load levels)
 
-For detailed benchmark results and analysis, see [benchmark analysis report](https://github.com/cloudera/minimcp/blob/main/benchmarks/reports/MINIMCP_VS_FASTMCP_ANALYSIS.md).
+For detailed results and architectural analysis, see the [benchmark analysis report](https://github.com/cloudera/minimcp/blob/main/benchmarks/reports/MINIMCP_VS_FASTMCP_ANALYSIS.md).
 
 ### Test Environment
 
-- **Python Version**: 3.11.9
-- **OS**: Linux 6.8.0-87-generic
-- **Test Date**: December 9, 2025
-- **Total Test Duration**: ~8 hours
+- **Python Version**: 3.10.12
+- **OS**: Linux 6.8.0-106-generic
+- **Test Date**: March 21, 2026
+- **Total Test Duration**: ~5.8 hours
 
 ## API Reference
 
