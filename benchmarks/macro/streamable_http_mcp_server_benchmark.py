@@ -48,6 +48,10 @@ async def create_client_server(server_module: ModuleType) -> AsyncGenerator[tupl
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     yield session, process
+                # Workaround: give the streamable_http_client background task time to
+                # finish any in-flight POST triggered by ClientSession teardown before
+                # the task group is cancelled. See docs/ISSUES.md for details.
+                await anyio.sleep(0.5)
 
 
 def main() -> None:
