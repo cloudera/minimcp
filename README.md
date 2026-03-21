@@ -222,7 +222,7 @@ async def handler(request: Request):
     return await transport.starlette_dispatch(request, scope)
 ```
 
-## Benchmark - MiniMCP vs FastMCP (standalone)
+## Benchmark - MiniMCP vs FastMCP
 
 Benchmarked against the standalone [`fastmcp`](https://github.com/jlowin/fastmcp) package (v3.1.1, by Jeremiah Lowin).
 
