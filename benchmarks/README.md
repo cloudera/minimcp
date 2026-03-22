@@ -1,4 +1,4 @@
-# MiniMCP vs FastMCP · Benchmarks
+# MiniMCP vs FastMCP vs MCP Low-Level Server · Benchmarks
 
 Latest report: [MiniMCP vs FastMCP Analysis](./reports/MINIMCP_VS_FASTMCP_ANALYSIS.md)
 
@@ -6,7 +6,7 @@ Once you've set up a development environment as described in [CONTRIBUTING.md](.
 
 ## Running Benchmarks
 
-Each transport has a separate benchmark script that can be run with the following commands. Only tool calling is used for benchmarking as other primitives aren't much different functionally. Each script produces two result files: one for sync tool calls and another for async tool calls.
+Each transport has a separate benchmark script that can be run with the following commands. Only tool calling is used for benchmarking as other primitives aren't much different functionally. Each script compares three servers — MiniMCP, FastMCP, and the MCP SDK's low-level `Server` — and produces three result files: one each for sync, I/O-bound async, and noop tool calls.
 
 ```bash
 # Stdio
@@ -19,7 +19,7 @@ uv run python -m benchmarks.macro.http_mcp_server_benchmark
 uv run python -m benchmarks.macro.streamable_http_mcp_server_benchmark
 ```
 
-> **FastMCP Version:** The benchmarks compare MiniMCP against the [FastMCP](https://pypi.org/project/fastmcp/) package. The version in use is pinned in the `dev` dependency group in `pyproject.toml`. To temporarily use a different version, run `uv pip install fastmcp==<version>` before running the scripts.
+> **Versions:** The benchmarks compare MiniMCP against the [FastMCP](https://pypi.org/project/fastmcp/) package and the [MCP Python SDK](https://pypi.org/project/mcp/)'s low-level `Server`. Both versions are pinned in the `dev` dependency group in `pyproject.toml`. To temporarily use a different version, run `uv pip install fastmcp==<version>` or `uv pip install mcp==<version>` before running the scripts.
 
 ### System Preparation - Best practice in Ubuntu
 
@@ -64,7 +64,7 @@ The benchmark uses four load profiles to test performance under different concur
 
 ### Analyze Results
 
-The `analyze_results.py` script provides a visual comparison of benchmark results between MiniMCP and FastMCP. It displays response time comparisons across all load profiles with visual bar charts, performance improvements as percentages, memory usage comparisons, key findings, and metadata.
+The `analyze_results.py` script provides a visual comparison of benchmark results across all servers (MiniMCP, FastMCP, and MCP low-level). It displays response time and memory usage bar charts across all load profiles, performance improvements as percentages relative to FastMCP as the baseline, key findings per server, and run metadata.
 
 You can run it for each result JSON file with:
 

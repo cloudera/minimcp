@@ -1,6 +1,10 @@
 # isort: off
 from httpx import AsyncClient, Limits
-from benchmarks.macro.servers import fastmcp_http_server, minimcp_http_server
+from benchmarks.macro.servers import (
+    fastmcp_streamable_http_server,
+    mcp_lowlevel_streamable_http_server,
+    minimcp_http_server,
+)
 # isort: on
 
 import importlib.metadata
@@ -58,8 +62,13 @@ def main() -> None:
         servers=[
             ServerConfig(
                 "fastmcp",
-                partial(create_client_server, fastmcp_http_server),
+                partial(create_client_server, fastmcp_streamable_http_server),
                 metadata={"version": importlib.metadata.version("fastmcp")},
+            ),
+            ServerConfig(
+                "mcp-lowlevel",
+                partial(create_client_server, mcp_lowlevel_streamable_http_server),
+                metadata={"version": importlib.metadata.version("mcp")},
             ),
             ServerConfig(
                 "minimcp",

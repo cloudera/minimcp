@@ -1,5 +1,5 @@
 # isort: off
-from benchmarks.macro.servers import fastmcp_stdio_server, minimcp_stdio_server
+from benchmarks.macro.servers import fastmcp_stdio_server, mcp_lowlevel_stdio_server, minimcp_stdio_server
 # isort: on
 
 import importlib.metadata
@@ -62,6 +62,11 @@ def main() -> None:
                 "fastmcp",
                 partial(create_client_server, fastmcp_stdio_server),
                 metadata={"version": importlib.metadata.version("fastmcp")},
+            ),
+            ServerConfig(
+                "mcp-lowlevel",
+                partial(create_client_server, mcp_lowlevel_stdio_server),
+                metadata={"version": importlib.metadata.version("mcp")},
             ),
             ServerConfig(
                 "minimcp",
