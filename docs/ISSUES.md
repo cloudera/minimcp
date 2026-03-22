@@ -60,23 +60,35 @@ perspective the client simply disappears, resulting in a connection reset.
 
 ### Workaround (current)
 
-A 0.5 s sleep is inserted between `ClientSession.__aexit__` and
-`streamable_http_client.__aexit__` — i.e., after the inner `async with
-ClientSession` block ends but before the outer `async with
-streamable_http_client` block ends:
+After `ClientSession.__aexit__` completes, the `write` channel is closed
+explicitly. This signals EOF to the dispatcher task: it drains and processes
+the final queued notification (the POST), then exits its own loop cleanly.
+By the time `streamable_http_client.__aexit__` cancels the task group, the
+dispatcher is already done — no task is blocked mid-read, so no
+`ReadError`.
+
+The `CancelScope(shield=True)` prevents an outer cancellation from
+interrupting the `aclose` call itself. The `ClosedResourceError` guard
+handles SDK versions that already close the write channel during
+`ClientSession.__aexit__`.
 
 ```python
 async with streamable_http_client(server_url, http_client=client) as (read, write, _):
     async with ClientSession(read, write) as session:
         await session.initialize()
         yield session, process
-    # Workaround: give the background task time to complete the final POST
-    # before the task group is cancelled.
-    await anyio.sleep(0.5)
+    # Signal EOF so the dispatcher exits cleanly after the final POST.
+    with anyio.CancelScope(shield=True):
+        try:
+            await write.aclose()
+        except anyio.ClosedResourceError:
+            pass
 ```
 
-The 0.5 s overhead is negligible per round because each round already
-starts/stops a full server subprocess.
+The previous workaround used `await anyio.sleep(0.5)`. That was sufficient
+for tools with measurable latency but failed for near-zero-latency tools
+(e.g. `noop_tool`) where the rapid connection churn made the 0.5 s window
+unreliable. Closing the channel is deterministic rather than time-based.
 
 ---
 

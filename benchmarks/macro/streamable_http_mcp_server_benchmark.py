@@ -52,10 +52,14 @@ async def create_client_server(server_module: ModuleType) -> AsyncGenerator[tupl
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     yield session, process
-                # Workaround: give the streamable_http_client background task time to
-                # finish any in-flight POST triggered by ClientSession teardown before
-                # the task group is cancelled. See docs/ISSUES.md for details.
-                await anyio.sleep(0.5)
+                # Workaround: signal EOF on the write channel so the dispatcher task
+                # exits cleanly after the final POST sent by ClientSession teardown,
+                # rather than being cancelled mid-read. See docs/ISSUES.md for details.
+                with anyio.CancelScope(shield=True):
+                    try:
+                        await write.aclose()
+                    except anyio.ClosedResourceError:
+                        pass
 
 
 def main() -> None:
