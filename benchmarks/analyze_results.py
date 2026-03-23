@@ -199,7 +199,9 @@ def _print_bar_chart(
     """
 
     col_width = max(len(s) for s in SERVER_ORDER)
-    values = {s: data[s][load_key][metric_key]["mean"] * scale for s in SERVER_ORDER if s in data and load_key in data[s]}
+    values = {
+        s: data[s][load_key][metric_key]["mean"] * scale for s in SERVER_ORDER if s in data and load_key in data[s]
+    }
     max_val = max(values.values())
     baseline_val = values.get(baseline)
 
@@ -235,7 +237,9 @@ def print_response_time_visualization(data: dict[str, dict[str, Any]]) -> None:
     print_title("Response Time Visualization (smaller is better)")
 
     for load_key, (title, subtitle) in LOAD_INFO.items():
-        _print_bar_chart(data, load_key, title, subtitle, "response_time", 1000, "ms", 2, BASELINE_SERVER, True, "shorter", "longer")
+        _print_bar_chart(
+            data, load_key, title, subtitle, "response_time", 1000, "ms", 2, BASELINE_SERVER, True, "shorter", "longer"
+        )
     print()
 
 
@@ -249,7 +253,9 @@ def print_memory_visualization(data: dict[str, dict[str, Any]]) -> None:
     print_title("Maximum Memory Usage Visualization (smaller is better)")
 
     for load_key, (title, subtitle) in LOAD_INFO.items():
-        _print_bar_chart(data, load_key, title, subtitle, "max_memory_usage", 1, "KB", 0, BASELINE_SERVER, True, "lower", "higher")
+        _print_bar_chart(
+            data, load_key, title, subtitle, "max_memory_usage", 1, "KB", 0, BASELINE_SERVER, True, "lower", "higher"
+        )
     print()
 
 
