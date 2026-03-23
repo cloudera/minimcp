@@ -222,25 +222,28 @@ async def handler(request: Request):
     return await transport.starlette_dispatch(request, scope)
 ```
 
-## Benchmark - MiniMCP vs FastMCP
+## Benchmark - MiniMCP vs FastMCP vs MCP Low-Level
 
-Benchmarked against the standalone [`fastmcp`](https://github.com/jlowin/fastmcp) package (v3.1.1, by Jeremiah Lowin).
+Benchmarked against the standalone [`fastmcp`](https://github.com/jlowin/fastmcp) package (v3.1.1,
+by Jeremiah Lowin) and the official MCP Python SDK [`mcp`](https://github.com/modelcontextprotocol/python-sdk)
+low-level server (v1.24.0).
 
-In our benchmarks, MiniMCP consistently outperforms FastMCP across all transport types and workloads:
+MiniMCP is the fastest server in every one of the 36 test scenarios against both competitors:
 
-- **28–64% faster response times** across all load levels
-- **38–126% higher throughput** (STDIO transport; advantage persists under heavy load)
-- **44–66% lower peak memory usage** — FastMCP grows with concurrency, MiniMCP stays flat
-- **Wins all 36 test scenarios** (3 transports × 3 workloads × 4 load levels)
+- **Wins all 36 test scenarios** (3 transports × 3 workloads × 4 load levels) against both FastMCP and MCP Low-Level
+- **vs FastMCP**: 28–64% faster response times; 37–126% higher throughput; 44–66% lower peak memory usage
+- **vs MCP Low-Level (STDIO)**: 8–52% faster response times; up to 54% higher throughput — MCP Low-Level ranks 2nd on STDIO
+- **vs MCP Low-Level (HTTP)**: 48–60% faster response times; 46–136% higher throughput — MCP Low-Level struggles at high concurrency, plateauing at ~180 RPS regardless of load
+- **Memory (HTTP)**: MiniMCP holds flat at ~22 MB under heavy load; FastMCP reaches ~63 MB, MCP Low-Level ~56 MB
 
-For detailed results and architectural analysis, see the [benchmark analysis report](https://github.com/cloudera/minimcp/blob/main/benchmarks/reports/MINIMCP_VS_FASTMCP_ANALYSIS.md).
+For detailed results and architectural analysis, see the [benchmark analysis report](https://github.com/cloudera/minimcp/blob/main/benchmarks/reports/BENCHMARK_ANALYSIS_REPORT.md).
 
 ### Test Environment
 
 - **Python Version**: 3.10.12
 - **OS**: Linux 6.8.0-106-generic
-- **Test Date**: March 21, 2026
-- **Total Test Duration**: ~5.8 hours
+- **Test Date**: March 22, 2026
+- **Total Test Duration**: ~9.3 hours
 
 ## API Reference
 
