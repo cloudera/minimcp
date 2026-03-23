@@ -1,6 +1,6 @@
 [project]
 name = "minimcp"
-version = "0.5.0"
+version = "0.5.2"
 description = "A minimal, stateless, and lightweight framework for building remote MCP servers."
 authors = [{ name = "Sreenath Somarajapuram", email = "somarajapuram@gmail.com" }]
 readme = "README.md"
@@ -37,6 +37,15 @@ dev = [
 [project.urls]
 Repository = "https://github.com/cloudera/minimcp"
 PyPI = "https://pypi.org/project/minimcp/"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/",
+    "tests/",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+]
 
 [build-system]
 requires = ["hatchling"]
