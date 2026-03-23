@@ -15,6 +15,9 @@ LOAD_INFO = {
     "heavy_load": ("Heavy Load", "300 concurrent requests"),
 }
 
+BASELINE_SERVER = "minimcp"
+SERVER_ORDER = ["fastmcp", "mcp-lowlevel", "minimcp"]
+
 
 def load_results(json_path: Path) -> dict[str, Any]:
     """Load benchmark results from JSON file."""
@@ -27,21 +30,40 @@ def load_results(json_path: Path) -> dict[str, Any]:
         return json.load(f)
 
 
-def calculate_improvement(minimcp_val: float, fastmcp_val: float, lower_is_better: bool = True) -> float:
-    """Calculate percentage improvement."""
+def calculate_improvement(server_val: float, baseline_val: float, lower_is_better: bool = True) -> float:
+    """Calculate percentage improvement of server_val relative to baseline_val.
+
+    Returns a positive value when the server is better than the baseline,
+    and a negative value when it is worse.
+
+    Args:
+        server_val: The metric value for the server being evaluated.
+        baseline_val: The metric value for the baseline server.
+        lower_is_better: If True, a lower server_val is considered an improvement.
+    """
+
     if lower_is_better:
-        return ((fastmcp_val - minimcp_val) / fastmcp_val) * 100
+        return ((baseline_val - server_val) / baseline_val) * 100
     else:
-        return ((minimcp_val - fastmcp_val) / fastmcp_val) * 100
+        return ((server_val - baseline_val) / baseline_val) * 100
 
 
 def print_title(title: str) -> None:
-    # Bold + Underline
+    """Print a bold, underlined section title."""
+
     print("\033[1m\033[4m" + title + "\033[0m\n")
 
 
-def organize_results(results: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Organize results by server and load."""
+def organize_results(results: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Organize results by server name, then by load name.
+
+    Args:
+        results: The full benchmark results dict loaded from JSON.
+
+    Returns:
+        A dict mapping each server name to its per-load metrics.
+    """
+
     data: dict[str, dict[str, Any]] = {}
     for result in results["results"]:
         server = result["server_name"]
@@ -49,149 +71,206 @@ def organize_results(results: dict[str, Any]) -> tuple[dict[str, Any], dict[str,
         if server not in data:
             data[server] = {}
         data[server][load] = result["metrics"]
-
-    return data["minimcp"], data["fastmcp"]
+    return data
 
 
 def print_metadata(results: dict[str, Any]) -> None:
-    """Print metadata."""
-    min, sec = divmod(results["metadata"]["duration_seconds"], 60)
+    """Print run metadata (timestamp and duration).
+
+    Args:
+        results: The full benchmark results dict loaded from JSON.
+    """
+
+    minutes, sec = divmod(results["metadata"]["duration_seconds"], 60)
     print(f"Date: {results['metadata']['write_timestamp']}")
-    print(f"Duration: {min:.0f}m {sec:.0f}s\n")
+    print(f"Duration: {minutes:.0f}m {sec:.0f}s\n")
 
 
-def print_key_findings(results: dict[str, Any]) -> None:
-    """Print key findings section."""
+def _collect_improvements(
+    data: dict[str, dict[str, Any]],
+    server: str,
+    loads: list[str],
+    metric_key: str,
+    lower_is_better: bool,
+) -> list[float]:
+    """Collect per-load improvement percentages for one server and metric.
+
+    Loads missing from either the server or the baseline are skipped.
+
+    Args:
+        data: Dict mapping each server name to its per-load metrics.
+        server: The server being evaluated.
+        loads: The load keys to include.
+        metric_key: The metric to compare (e.g. ``"response_time"``).
+        lower_is_better: Whether a lower value represents better performance.
+
+    Returns:
+        A list of improvement percentages, one per available load.
+    """
+
+    improvements: list[float] = []
+    for load in loads:
+        if load not in data[server] or load not in data[BASELINE_SERVER]:
+            continue
+        improvements.append(
+            calculate_improvement(
+                data[server][load][metric_key]["mean"],
+                data[BASELINE_SERVER][load][metric_key]["mean"],
+                lower_is_better=lower_is_better,
+            )
+        )
+    return improvements
+
+
+def print_key_findings(data: dict[str, dict[str, Any]]) -> None:
+    """Print key findings comparing each server against the baseline.
+
+    Args:
+        data: Dict mapping each server name to its per-load metrics.
+    """
+
     print_title("Key Findings")
 
-    minimcp, fastmcp = organize_results(results)
+    non_baseline = [s for s in SERVER_ORDER if s != BASELINE_SERVER and s in data]
 
-    # Response time improvements (excluding sequential)
-    response_improvements: list[float] = []
-    for load in ["light_load", "medium_load", "heavy_load"]:
-        min_rt = minimcp[load]["response_time"]["mean"]
-        fast_rt = fastmcp[load]["response_time"]["mean"]
-        improvement = calculate_improvement(min_rt, fast_rt, lower_is_better=True)
-        response_improvements.append(improvement)
+    for server in non_baseline:
+        concurrent_loads = ["light_load", "medium_load", "heavy_load"]
+        # Response time (excluding sequential — high concurrency tells the real story)
+        rt_improvements = _collect_improvements(data, server, concurrent_loads, "response_time", True)
+        # Throughput
+        tp_improvements = _collect_improvements(data, server, concurrent_loads, "throughput_rps", False)
+        # Memory (medium and heavy carry the most signal)
+        mem_improvements = _collect_improvements(data, server, ["medium_load", "heavy_load"], "max_memory_usage", True)
 
-    rt_min = min(response_improvements)
-    rt_max = max(response_improvements)
+        rt_min, rt_max = min(rt_improvements), max(rt_improvements)
+        tp_min, tp_max = min(tp_improvements), max(tp_improvements)
+        mem_min, mem_max = min(mem_improvements), max(mem_improvements)
 
-    # Throughput improvements
-    throughput_improvements: list[float] = []
-    for load in ["light_load", "medium_load", "heavy_load"]:
-        min_tp = minimcp[load]["throughput_rps"]["mean"]
-        fast_tp = fastmcp[load]["throughput_rps"]["mean"]
-        improvement = calculate_improvement(min_tp, fast_tp, lower_is_better=False)
-        throughput_improvements.append(improvement)
+        print(f"[{server} vs {BASELINE_SERVER}]")
+        if rt_min >= 0:
+            print(f"  - ~{rt_min:.0f}-{rt_max:.0f}% shorter response time across concurrent load scenarios")
+        else:
+            print(f"  - response time varies from {rt_min:.0f}% to {rt_max:.0f}% vs {BASELINE_SERVER}")
 
-    tp_min = min(throughput_improvements)
-    tp_max = max(throughput_improvements)
+        if tp_min >= 0:
+            print(f"  - ~{tp_min:.0f}-{tp_max:.0f}% higher throughput")
+        else:
+            print(f"  - throughput varies from {tp_min:.0f}% to {tp_max:.0f}% vs {BASELINE_SERVER}")
 
-    # Memory improvements
-    memory_improvements: list[float] = []
-    for load in ["medium_load", "heavy_load"]:
-        min_mem = minimcp[load]["max_memory_usage"]["mean"]
-        fast_mem = fastmcp[load]["max_memory_usage"]["mean"]
-        improvement = calculate_improvement(min_mem, fast_mem, lower_is_better=True)
-        memory_improvements.append(improvement)
+        if mem_min >= 0 and mem_max >= 0:
+            print(f"  - ~{mem_min:.0f}-{mem_max:.0f}% lower peak memory under medium to heavy loads")
+        elif mem_min < 0 and mem_max < 0:
+            print(f"  - ~{abs(mem_max):.0f}-{abs(mem_min):.0f}% higher peak memory under medium to heavy loads")
+        else:
+            print(f"  - peak memory varies from {mem_min:.0f}% to {mem_max:.0f}% vs {BASELINE_SERVER}")
 
-    mem_min = min(memory_improvements)
-    mem_max = max(memory_improvements)
+        print()
 
-    print(
-        f"- MiniMCP outperforms FastMCP by ~{rt_min:.0f}-{rt_max:.0f}% in response time across "
-        "all concurrent load scenarios"
-    )
-    print(f"- MiniMCP achieves ~{tp_min:.0f}-{tp_max:.0f}% higher throughput than FastMCP")
 
-    # Handle memory improvements (can be positive or negative)
-    if mem_min >= 0 and mem_max >= 0:
-        print(f"- MiniMCP uses ~{mem_min:.0f}-{mem_max:.0f}% less memory under medium to heavy loads")
-    elif mem_min < 0 and mem_max < 0:
-        print(f"- MiniMCP uses ~{abs(mem_max):.0f}-{abs(mem_min):.0f}% more memory under medium to heavy loads")
-    else:
-        print(
-            f"- MiniMCP memory usage varies from {mem_min:.0f}% to {mem_max:.0f}% compared to FastMCP under medium "
-            "to heavy loads"
-        )
+def _print_bar_chart(
+    data: dict[str, dict[str, Any]],
+    load_key: str,
+    load_title: str,
+    load_subtitle: str,
+    metric_key: str,
+    scale: float,
+    unit: str,
+    decimal_places: int,
+    baseline: str,
+    lower_is_better: bool,
+    better_label: str,
+    worse_label: str,
+) -> None:
+    """Print a single ASCII bar chart for one load level and metric.
+
+    Args:
+        data: Dict mapping server names to their per-load metrics.
+        load_key: The load identifier (e.g. ``"light_load"``).
+        load_title: Human-readable load name.
+        load_subtitle: Human-readable concurrency description.
+        metric_key: Which metric to visualize (e.g. ``"response_time"``).
+        scale: Multiplier applied to raw values before display (e.g. 1000 for ms).
+        unit: Display unit label (e.g. ``"ms"``).
+        decimal_places: Number of decimal places to show in the value column.
+        baseline: The server name used as the comparison reference.
+        lower_is_better: Whether a lower value represents better performance.
+        better_label: Annotation word when a server beats the baseline (e.g. ``"faster"``).
+        worse_label: Annotation word when a server trails the baseline (e.g. ``"slower"``).
+    """
+
+    col_width = max(len(s) for s in SERVER_ORDER)
+    values = {s: data[s][load_key][metric_key]["mean"] * scale for s in SERVER_ORDER if s in data and load_key in data[s]}
+    max_val = max(values.values())
+    baseline_val = values.get(baseline)
+
+    print(f"{load_title} ({load_subtitle})")
+    for server in SERVER_ORDER:
+        if server not in data or load_key not in data[server]:
+            continue
+        val = values[server]
+        bars = int((val / max_val) * 50) if max_val > 0 else 0
+
+        if server == baseline or baseline_val is None:
+            annotation = "(baseline)"
+        else:
+            pct = calculate_improvement(val, baseline_val, lower_is_better=lower_is_better)
+            if pct > 0:
+                annotation = f"✓ {pct:.1f}% {better_label}"
+            else:
+                annotation = f"✗ {abs(pct):.1f}% {worse_label}"
+
+        val_str = f"{val:.{decimal_places}f} {unit}" if decimal_places > 0 else f"{val:,.0f} {unit}"
+
+        print(f"{server:<{col_width}}  {'▓' * bars} {val_str}  {annotation}")
     print()
 
 
-def print_response_time_visualization(results: dict[str, Any]) -> None:
-    """Print response time visualization."""
+def print_response_time_visualization(data: dict[str, dict[str, Any]]) -> None:
+    """Print response time bar charts for all load levels.
+
+    Args:
+        data: Dict mapping each server name to its per-load metrics.
+    """
+
     print_title("Response Time Visualization (smaller is better)")
 
-    minimcp, fastmcp = organize_results(results)
-
     for load_key, (title, subtitle) in LOAD_INFO.items():
-        min_rt = minimcp[load_key]["response_time"]["mean"] * 1000  # to ms
-        fast_rt = fastmcp[load_key]["response_time"]["mean"] * 1000
-        improvement = calculate_improvement(min_rt, fast_rt, lower_is_better=True)
-
-        # Scale bars (max 50 chars for fastmcp)
-        max_val = max(min_rt, fast_rt)
-        fast_bars = int((fast_rt / max_val) * 50)
-        min_bars = int((min_rt / max_val) * 50)
-
-        # Determine if minimcp is better or worse
-        if improvement > 0:
-            status = f"✓ {improvement:.1f}% faster"
-        else:
-            status = f"✗ {abs(improvement):.1f}% slower"
-
-        print(f"{title} ({subtitle})")
-        print(f"minimcp  {'▓' * min_bars} {min_rt:.2f}ms  {status}")
-        print(f"fastmcp  {'▓' * fast_bars} {fast_rt:.2f}ms")
-        print()
+        _print_bar_chart(data, load_key, title, subtitle, "response_time", 1000, "ms", 2, BASELINE_SERVER, True, "shorter", "longer")
     print()
 
 
-def print_memory_visualization(results: dict[str, Any]) -> None:
-    """Print maximum memory usage visualization."""
+def print_memory_visualization(data: dict[str, dict[str, Any]]) -> None:
+    """Print peak memory usage bar charts for all load levels.
+
+    Args:
+        data: Dict mapping each server name to its per-load metrics.
+    """
+
     print_title("Maximum Memory Usage Visualization (smaller is better)")
 
-    minimcp, fastmcp = organize_results(results)
-
     for load_key, (title, subtitle) in LOAD_INFO.items():
-        min_mem = minimcp[load_key]["max_memory_usage"]["mean"]
-        fast_mem = fastmcp[load_key]["max_memory_usage"]["mean"]
-        improvement = calculate_improvement(min_mem, fast_mem, lower_is_better=True)
-
-        # Scale bars (max 50 chars for the higher value)
-        max_val = max(min_mem, fast_mem)
-        min_bars = int((min_mem / max_val) * 50)
-        fast_bars = int((fast_mem / max_val) * 50)
-
-        # Determine if minimcp is better or worse
-        if improvement > 0:
-            status = f"✓ {improvement:.1f}% lower"
-        else:
-            status = f"✗ {abs(improvement):.1f}% higher"
-
-        print(f"{title} ({subtitle})")
-        print(f"minimcp  {'▓' * min_bars} {min_mem:,.0f} KB  {status}")
-        print(f"fastmcp  {'▓' * fast_bars} {fast_mem:,.0f} KB")
-        print()
+        _print_bar_chart(data, load_key, title, subtitle, "max_memory_usage", 1, "KB", 0, BASELINE_SERVER, True, "lower", "higher")
     print()
 
 
 def main() -> None:
     """Main entry point."""
+
     if len(sys.argv) != 2:
         print("Usage: python analyze_results.py <results.json>")
         sys.exit(1)
 
     json_path = Path(sys.argv[1])
     results = load_results(json_path)
+    data = organize_results(results)
 
     print()
     print_title("Benchmark Analysis")
 
     print_metadata(results)
-    print_key_findings(results)
-    print_response_time_visualization(results)
-    print_memory_visualization(results)
+    print_key_findings(data)
+    print_response_time_visualization(data)
+    print_memory_visualization(data)
 
 
 if __name__ == "__main__":

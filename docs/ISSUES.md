@@ -1,10 +1,10 @@
 # Known Issues
 
-## `httpcore.ReadError` / `ExceptionGroup` during streamable-HTTP benchmark teardown
+## 1. `httpcore.ReadError` / `ExceptionGroup` during streamable-HTTP benchmark teardown
 
-**Status:** Workaround in place — upstream fix required in `mcp` SDK  
-**Affects:** `benchmarks/macro/streamable_http_mcp_server_benchmark.py`  
-**MCP SDK version observed:** 1.24.0  
+**Status:** Workaround in place — upstream fix required in `mcp` SDK
+**Affects:** `benchmarks/macro/streamable_http_mcp_server_benchmark.py`
+**MCP SDK version observed:** 1.24.0
 **Upstream repo:** <https://github.com/modelcontextprotocol/python-sdk>
 
 ---
