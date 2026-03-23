@@ -26,7 +26,7 @@ _Simple async function interface_ ⭐ _Bidirectional messaging is optional_ ⭐ 
   - [Quick Start - Standalone ASGI App](https://github.com/cloudera/minimcp#quick-start---standalone-asgi-app)
   - [Basic Setup](https://github.com/cloudera/minimcp#basic-setup)
   - [FastAPI Integration](https://github.com/cloudera/minimcp#fastapi-integration)
-- [Benchmark - MiniMCP vs FastMCP](https://github.com/cloudera/minimcp#benchmark---minimcp-vs-fastmcp)
+- [Benchmark - MiniMCP vs FastMCP vs MCP Low-Level](https://github.com/cloudera/minimcp#benchmark---minimcp-vs-fastmcp-vs-mcp-low-level)
 - [API Reference](https://github.com/cloudera/minimcp#api-reference)
   - [MiniMCP](https://github.com/cloudera/minimcp#minimcp)
   - [Primitive Managers/Decorators](https://github.com/cloudera/minimcp#primitive-managersdecorators)
@@ -657,7 +657,7 @@ For detailed information beyond this README, check out the following guides:
 Additional resources:
 
 - [DeepWiki API Documentation](https://deepwiki.com/cloudera/minimcp)
-- [Benchmark Results](https://github.com/cloudera/minimcp/blob/main/benchmarks/reports/MINIMCP_VS_FASTMCP_ANALYSIS.md)
+- [Benchmark Results](https://github.com/cloudera/minimcp/blob/main/benchmarks/reports/BENCHMARK_ANALYSIS_REPORT.md)
 
 ## Contributing
 
