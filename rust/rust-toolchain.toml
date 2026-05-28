@@ -1,0 +1,5 @@
+# Pins the toolchain and components used for the Rust workspace so that
+# `cargo fmt` and `cargo clippy` are always available for the pre-commit hooks.
+[toolchain]
+channel = "stable"
+components = ["rustfmt", "clippy"]

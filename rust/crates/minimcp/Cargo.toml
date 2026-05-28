@@ -1,0 +1,25 @@
+[package]
+name = "minimcp"
+version = "0.1.0"
+description = "A minimal, stateless, and lightweight framework for building MCP servers (Rust)"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[features]
+default = ["http"]
+# The `http` feature pulls in axum for the HTTP transport. Disable it for a
+# stdio-only build with a smaller dependency tree.
+http = ["dep:axum"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+thiserror.workspace = true
+axum = { version = "0.7", optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }

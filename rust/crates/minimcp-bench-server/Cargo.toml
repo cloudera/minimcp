@@ -1,0 +1,24 @@
+[package]
+name = "minimcp-bench-server"
+version = "0.1.0"
+description = "Benchmark MCP server binaries (stdio + HTTP) built on the Rust MiniMCP crate"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+minimcp = { path = "../minimcp" }
+serde_json.workspace = true
+tokio = { version = "1", features = ["full"] }
+axum = "0.7"
+libc = "0.2"
+memory-stats = "1"
+
+[[bin]]
+name = "stdio_server"
+path = "src/bin/stdio_server.rs"
+
+[[bin]]
+name = "http_server"
+path = "src/bin/http_server.rs"
